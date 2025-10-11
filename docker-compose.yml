@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  webapp:
+    build: .
+    ports:
+      - "5001:5000"
+    environment:
+      - APP_VERSION=1
+      # --- DB Credentials for v3 ---
+      - DB_HOST=postgres_db
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
+      - DB_NAME=antdemo
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=antdemo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
