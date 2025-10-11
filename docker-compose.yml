@@ -5,22 +5,21 @@ services:
     ports:
       - "5001:5000"
     environment:
-      # --- Change this value to test different versions ---
       - APP_VERSION=1
       # --- DB Credentials for v3 ---
       - DB_HOST=postgres_db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
-      - DB_NAME=mydatabase
+      - DB_NAME=antdemo
     depends_on:
       - postgres_db
 
   postgres_db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=myuser
       - POSTGRES_PASSWORD=mypassword
-      - POSTGRES_DB=mydatabase
+      - POSTGRES_DB=antdemo
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
