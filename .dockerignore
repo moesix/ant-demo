@@ -6,6 +6,8 @@
 Dockerfile
 docker-compose.yml
 .dockerignore
+deployment.yml
+service.yml
 
 # Python cache
 __pycache__/
