@@ -5,11 +5,11 @@ services:
     ports:
       - "5001:5000"
     environment:
-      - APP_VERSION=1
+      - APP_VERSION=2
       # --- DB Credentials for v3 ---
       - DB_HOST=postgres_db
-      - DB_USER=myuser
-      - DB_PASSWORD=mypassword
+      - DB_USER=antuser
+      - DB_PASSWORD=The#Ant#Demo#5001
       - DB_NAME=antdemo
     depends_on:
       - postgres_db
@@ -17,8 +17,8 @@ services:
   postgres_db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_USER=antuser
+      - POSTGRES_PASSWORD=The#Ant#Demo#5001
       - POSTGRES_DB=antdemo
     volumes:
       - postgres_data:/var/lib/postgresql/data

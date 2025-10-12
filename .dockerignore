@@ -1,0 +1,20 @@
+# Git files
+.git
+.gitignore
+
+# Docker specific files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE/Editor specific files
+.vscode/
+.idea/
+
+# Any other files you don't need in the final image
+README.md

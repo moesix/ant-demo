@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRE Ant Demo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <span class="button red"></span>
+            <span class="button yellow"></span>
+            <span class="button green"></span>
+        </div>
+        <div class="terminal-body">
+            <p><span class="prompt">/opt/ant-demo/</span> <span class="output">{{ command }}</span></p>
+
+            <pre class="output">{{ content }}</pre>
+
+            {% if os_info %}
+            <pre class="output">
+CPU Usage : {{ os_info.cpu }}%
+MEM Usage : {{ os_info.mem }}%
+Disk Total: {{ os_info.disk_total }}
+Disk Used : {{ os_info.disk_used }} ({{ os_info.disk_percent }}%)
+Net Sent  : {{ os_info.net_sent }}
+Net Recv  : {{ os_info.net_recv }}
+            </pre>
+            {% endif %}
+
+            {% if logs %}
+            <p class="output">Last 5 access logs:</p>
+            <ul class="log-list">
+                {% for log in logs %}
+                    <li>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} - {{ log.message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <p><span class="prompt">/opt/ant-demo/</span><span class="cursor"></span></p>
+        </div>
+    </div>
+</body>
+</html>
