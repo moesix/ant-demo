@@ -14,7 +14,7 @@
             <span class="button green"></span>
         </div>
         <div class="terminal-body">
-            <p><span class="prompt">C:\Users\SRE></span> <span class="output">{{ command }}</span></p>
+            <p><span class="prompt">/opt/ant-demo/</span> <span class="output">{{ command }}</span></p>
 
             <pre class="output">{{ content }}</pre>
 
@@ -22,6 +22,10 @@
             <pre class="output">
 CPU Usage : {{ os_info.cpu }}%
 MEM Usage : {{ os_info.mem }}%
+Disk Total: {{ os_info.disk_total }}
+Disk Used : {{ os_info.disk_used }} ({{ os_info.disk_percent }}%)
+Net Sent  : {{ os_info.net_sent }}
+Net Recv  : {{ os_info.net_recv }}
             </pre>
             {% endif %}
 
@@ -34,7 +38,7 @@ MEM Usage : {{ os_info.mem }}%
             </ul>
             {% endif %}
 
-            <p><span class="prompt">C:\Users\SRE></span><span class="cursor"></span></p>
+            <p><span class="prompt">/opt/ant-demo/</span><span class="cursor"></span></p>
         </div>
     </div>
 </body>

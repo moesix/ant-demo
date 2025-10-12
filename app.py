@@ -24,7 +24,7 @@ APP_VERSION = os.environ.get('APP_VERSION', '1')
 @app.route('/')
 def index():
     context = {
-        'command': 'run-app.bat --version ' + APP_VERSION,
+        'command': 'app.py --version ' + APP_VERSION,
         'content': '',
         'os_info': None,
         'logs': None
@@ -35,10 +35,17 @@ def index():
 
     elif APP_VERSION == '2':
         context['content'] = "Displaying Operating System Information:"
+        disk = psutil.disk_usage('/')
+        net = psutil.net_io_counters()
         context['os_info'] = {
-            'cpu': psutil.cpu_percent(),
-            'mem': psutil.virtual_memory().percent
-        }
+        'cpu': psutil.cpu_percent(),
+        'mem': psutil.virtual_memory().percent,
+        'disk_total': f"{disk.total / (1024**3):.2f} GB", # bytes to GB
+        'disk_used': f"{disk.used / (1024**3):.2f} GB",
+        'disk_percent': disk.percent,
+        'net_sent': f"{net.bytes_sent / (1024**2):.2f} MB", # bytes to GB
+        'net_recv': f"{net.bytes_recv / (1024**2):.2f} MB"
+    }
 
     elif APP_VERSION == '3':
         conn = get_db_connection()
@@ -58,7 +65,7 @@ def index():
             
             # Format logs
             context['logs'] = [{'message': row[0], 'timestamp': row[1]} for row in fetched_logs]
-            context['content'] = "Your access has been logged to PostgreSQL."
+            context['content'] = "Your access has been logged to PGSQL."
 
             cur.close()
             conn.close()
