@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ant-demo-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ant-demo
+  template:
+    metadata:
+      labels:
+        app: ant-demo
+    spec:
+      containers:
+      - name: webapp
+        image: ghcr.io/moesix/ant-demo:v1 # Deploying version 1
+        ports:
+        - containerPort: 5000
+        env:
+        - name: APP_VERSION
+          value: "1"
