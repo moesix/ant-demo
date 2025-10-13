@@ -7,17 +7,12 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 
+# environment files
+.env
+.env.example
+
 # k8s stash
 k8s/
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-
-# IDE/Editor specific files
-.vscode/
-.idea/
-
-# Any other files you don't need in the final image
+# other files
 README.md
