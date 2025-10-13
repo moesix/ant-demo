@@ -1,11 +1,10 @@
-version: '3.8'
 services:
   webapp:
     build: .
     ports:
       - "5001:5000"
     environment:
-      - APP_VERSION=2
+      - APP_VERSION=3
       # --- DB Credentials for v3 ---
       - DB_HOST=postgres_db
       - DB_USER=antuser
