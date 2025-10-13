@@ -6,8 +6,9 @@
 Dockerfile
 docker-compose.yml
 .dockerignore
-deployment.yml
-service.yml
+
+# k8s stash
+k8s/
 
 # Python cache
 __pycache__/
