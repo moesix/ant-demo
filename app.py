@@ -51,6 +51,7 @@ def index():
         conn = get_db_connection()
         if isinstance(conn, Exception):
             context['content'] = f"Database Connection Error: {conn}"
+            context['APP_VERSION'] = APP_VERSION
             return render_template('index.html', **context), 500
         
         try:
@@ -71,12 +72,15 @@ def index():
             conn.close()
         except Exception as e:
             context['content'] = f"Database query failed: {e}"
+            context['APP_VERSION'] = APP_VERSION
             return render_template('index.html', **context), 500
 
     else:
         context['content'] = f"Error: Unknown version '{APP_VERSION}' specified."
+        context['APP_VERSION'] = APP_VERSION
         return render_template('index.html', **context), 404
 
+    context['APP_VERSION'] = APP_VERSION
     return render_template('index.html', **context)
 
 if __name__ == "__main__":

@@ -3,43 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRE Ant Demo</title>
+    <title>Ant Demo - Kubernetes Cluster Application</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="terminal-window">
-        <div class="terminal-header">
-            <span class="button red"></span>
-            <span class="button yellow"></span>
-            <span class="button green"></span>
+    <div class="background-effect"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <h1 class="logo">ant<span class="logo-accent">demo</span></h1>
+                <p class="tagline">Kubernetes Cluster Application Showcase</p>
+            </div>
+            <div class="version-badge">v{{ APP_VERSION }}</div>
         </div>
-        <div class="terminal-body">
-            <p><span class="prompt">/opt/ant-demo/</span> <span class="output">{{ command }}</span></p>
+    </header>
 
-            <pre class="output">{{ content }}</pre>
+    <main class="main-content">
+        <div class="container">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span class="status-text">System Operational</span>
+                    </div>
+                    <div class="command-info">
+                        <span class="command-prompt">/opt/ant-demo/</span>
+                        <span class="command-text">{{ command }}</span>
+                    </div>
+                </div>
 
-            {% if os_info %}
-            <pre class="output">
-CPU Usage : {{ os_info.cpu }}%
-MEM Usage : {{ os_info.mem }}%
-Disk Total: {{ os_info.disk_total }}
-Disk Used : {{ os_info.disk_used }} ({{ os_info.disk_percent }}%)
-Net Sent  : {{ os_info.net_sent }}
-Net Recv  : {{ os_info.net_recv }}
-            </pre>
-            {% endif %}
+                <div class="card-body">
+                    <div class="content-section">
+                        <h2 class="section-title">Application Output</h2>
+                        <div class="content-output">
+                            {{ content }}
+                        </div>
+                    </div>
 
-            {% if logs %}
-            <p class="output">Last 5 access logs:</p>
-            <ul class="log-list">
-                {% for log in logs %}
-                    <li>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} - {{ log.message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+                    {% if os_info %}
+                    <div class="content-section">
+                        <h2 class="section-title">System Information</h2>
+                        <div class="system-metrics">
+                            <div class="metric-card">
+                                <div class="metric-label">CPU Usage</div>
+                                <div class="metric-value">{{ os_info.cpu }}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Memory Usage</div>
+                                <div class="metric-value">{{ os_info.mem }}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Disk Usage</div>
+                                <div class="metric-value">{{ os_info.disk_percent }}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Network Sent</div>
+                                <div class="metric-value">{{ os_info.net_sent }}</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Network Received</div>
+                                <div class="metric-value">{{ os_info.net_recv }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
 
-            <p><span class="prompt">/opt/ant-demo/</span><span class="cursor"></span></p>
+                    {% if logs %}
+                    <div class="content-section">
+                        <h2 class="section-title">Access Logs</h2>
+                        <div class="logs-container">
+                            <ul class="log-list">
+                                {% for log in logs %}
+                                <li class="log-item">
+                                    <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                                    <span class="log-message">{{ log.message }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer">
+                    <div class="build-info">
+                        <span class="build-label">Version:</span>
+                        <span class="build-value">{{ APP_VERSION }}</span>
+                    </div>
+                    <div class="k8s-info">
+                        <span class="k8s-label">Kubernetes Ready</span>
+                        <span class="k8s-icon">☸️</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-icon">📦</div>
+                    <div class="info-content">
+                        <h3 class="info-title">Docker Containerized</h3>
+                        <p class="info-text">Multi-stage builds with minimal base images for security and efficiency</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">⚙️</div>
+                    <div class="info-content">
+                        <h3 class="info-title">Kubernetes Deployed</h3>
+                        <p class="info-text">Production-grade manifests with health checks and resource limits</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">🚀</div>
+                    <div class="info-content">
+                        <h3 class="info-title">CI/CD Pipeline</h3>
+                        <p class="info-text">GitHub Actions with automated testing, security scanning, and deployment</p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">antdemo</div>
+                <p class="footer-tagline">Kubernetes Cluster Application Showcase</p>
+            </div>
+            <div class="footer-section">
+                <div class="footer-links">
+                    <a href="/health" class="footer-link">Health Check</a>
+                    <a href="#" class="footer-link">Documentation</a>
+                    <a href="#" class="footer-link">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
