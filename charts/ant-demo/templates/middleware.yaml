@@ -1,0 +1,28 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-compression
+spec:
+  compress: {}
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-ratelimit
+spec:
+  rateLimit:
+    average: 100
+    burst: 200
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-redirect
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

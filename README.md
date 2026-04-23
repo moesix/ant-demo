@@ -8,6 +8,15 @@ The application is a Python Flask web application with three distinct versions, 
 
 ## Features
 
+### Health Check Endpoint
+The application now includes a `/health` endpoint that provides:
+- Application health status (healthy/unhealthy)
+- Current version information
+- Database connection status (for v3)
+- System boot time
+
+This endpoint is used by Kubernetes liveness, readiness, and startup probes.
+
 ### Programming & Docker
 
 1.  **Simple Web Application (Python Flask):**
@@ -53,6 +62,20 @@ k8s/
 ├───deployment.yml
 ├───service.yml
 └───storage-class.yml
+charts/
+└───ant-demo/
+    ├───templates/
+    │   ├───deployment.yaml
+    │   ├───service.yaml
+    │   ├───ingressroute.yaml
+    │   ├───hpa.yaml
+    │   ├───pdb.yaml
+    │   ├───middleware.yaml
+    │   ├───serviceaccount.yaml
+    │   ├───rolebinding.yaml
+    │   └───_helpers.tpl
+    ├───Chart.yaml
+    └───values.yaml
 static/
 └───style.css
 templates/
@@ -84,19 +107,56 @@ templates/
 
 ### Deployment to Kubernetes
 
-1.  **Prerequisites:**
-    *   A running Kubernetes cluster (e.g., Minikube, GKE, EKS, AKS).
-    *   `kubectl` configured to connect to your cluster.
-2.  **Apply Kubernetes Manifests:**
+#### Prerequisites:
+*   A running Kubernetes cluster (e.g., Minikube, GKE, EKS, AKS).
+*   `kubectl` configured to connect to your cluster.
+*   Helm 3.x installed.
+*   Traefik ingress controller deployed.
+
+#### Deploying with Helm:
+1.  **Add Traefik Helm Repository:**
     ```bash
-    kubectl apply -f k8s/
+    helm repo add traefik https://helm.traefik.io/traefik
+    helm repo update
     ```
-3.  **Monitor Deployment:**
+
+2.  **Deploy Traefik Ingress Controller:**
     ```bash
-    kubectl get pods
-    kubectl get services
+    helm install traefik traefik/traefik --namespace traefik --create-namespace \
+      --set service.type=LoadBalancer \
+      --set ports.web.port=80 \
+      --set ports.websecure.port=443 \
+      --set logs.access.enabled=true \
+      --set metrics.prometheus.enabled=true
     ```
-4.  Access the application using the service's external IP or NodePort.
+
+3.  **Deploy Ant Demo Application:**
+    ```bash
+    cd charts/ant-demo
+    helm dependency update
+    helm install ant-demo . --namespace ant-demo --create-namespace
+    ```
+
+4.  **Monitor Deployment:**
+    ```bash
+    kubectl get pods -n ant-demo
+    kubectl get services -n ant-demo
+    kubectl get ingressroutes -n ant-demo
+    ```
+
+5.  **Access the Application:**
+    Add an entry to your `/etc/hosts` file pointing to the Traefik LoadBalancer IP:
+    ```
+    <TRAEFIK_EXTERNAL_IP> ant-demo.local
+    ```
+    
+    Then access the application at `https://ant-demo.local`
+
+#### Deploying with Traditional Manifests:
+If you prefer not to use Helm, you can still use the traditional Kubernetes manifests:
+```bash
+kubectl apply -f k8s/
+```
 
 ## CI/CD
 

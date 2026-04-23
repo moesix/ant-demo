@@ -1,7 +1,7 @@
 import os
 import psutil
 import psycopg2
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
@@ -20,6 +20,28 @@ def get_db_connection():
 
 # App Version
 APP_VERSION = os.environ.get('APP_VERSION', '1')
+
+@app.route('/health')
+def health():
+    """Health check endpoint for Kubernetes probes"""
+    health_status = {
+        'status': 'healthy',
+        'version': APP_VERSION,
+        'timestamp': psutil.boot_time()
+    }
+    
+    # Check database connection for v3
+    if APP_VERSION == '3':
+        conn = get_db_connection()
+        if isinstance(conn, Exception):
+            health_status['status'] = 'unhealthy'
+            health_status['database'] = 'connection failed'
+            return jsonify(health_status), 500
+        else:
+            health_status['database'] = 'connected'
+            conn.close()
+    
+    return jsonify(health_status), 200
 
 @app.route('/')
 def index():
