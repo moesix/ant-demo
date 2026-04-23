@@ -80,6 +80,10 @@ static/
 └───style.css
 templates/
 └───index.html
+scripts/
+├───db.sh
+├───wait-for-db.sh
+└───backup.sh
 ```
 
 *   `app.py`: The main Python Flask application.
@@ -95,15 +99,55 @@ templates/
 
 ### Local Development with Docker
 
-1.  **Build the Docker Image:**
-    ```bash
-    docker build -t ant-demo:v1 .
-    ```
-2.  **Run the Container:**
-    ```bash
-    docker run -p 5000:5000 ant-demo:v1
-    ```
-3.  Access the application at `http://localhost:5000`.
+#### Run with Docker Compose (Recommended for v3):
+```bash
+# Build and run the application
+cp .env.example .env
+docker build -t ant-demo:v3 .
+docker-compose up -d
+
+# Wait for database to be ready and initialize
+sleep 30
+docker-compose exec webapp /app/scripts/db.sh init
+
+# Check application status
+docker-compose ps
+
+# Access the application
+open http://localhost:5001
+```
+
+#### Run Individual Versions:
+```bash
+# Version 1 - Hello World
+docker build -t ant-demo:v1 .
+docker run -p 5000:5000 ant-demo:v1
+
+# Version 2 - System Info
+docker build -t ant-demo:v2 .
+docker run -p 5000:5000 -e APP_VERSION=2 ant-demo:v2
+
+# Version 3 - PostgreSQL Logging (requires database)
+cp .env.example .env
+docker build -t ant-demo:v3 .
+docker-compose up -d
+open http://localhost:5001
+```
+
+#### Database Management:
+```bash
+# Initialize database schema
+docker-compose exec webapp /app/scripts/db.sh init
+
+# Seed with test data
+docker-compose exec webapp /app/scripts/db.sh seed
+
+# Create database backup
+./scripts/backup.sh
+
+# Check database health
+docker-compose exec webapp /app/scripts/db.sh health
+```
 
 ### Deployment to Kubernetes
 

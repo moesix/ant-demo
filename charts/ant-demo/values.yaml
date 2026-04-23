@@ -85,6 +85,16 @@ topologySpreadConstraints:
       matchLabels:
         app.kubernetes.io/name: ant-demo
 
+config: {}
+
+secrets: {}
+
+persistence:
+  enabled: false
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClassName: ""
+
 env:
   APP_VERSION: "3"
   DB_HOST: "ant-demo-postgresql"
@@ -107,3 +117,23 @@ postgresql:
         memory: 512Mi
     persistence:
       size: 1Gi
+    health:
+      enabled: true
+      livenessProbe:
+        initialDelay: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        initialDelay: 5
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 2
+  # Backup configuration
+  backup:
+    enabled: false
+    schedule: "0 2 * * *"
+    retain: 7
+  # Connection pooling
+  pooler:
+    enabled: false

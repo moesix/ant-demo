@@ -21,6 +21,12 @@ All notable changes to this project will be documented in this file.
 - Horizontal Pod Autoscaler (HPA) with CPU/memory metrics
 - Traefik IngressRoute with TLS and ACME support
 - Middleware configurations (compression, rate limiting, redirect)
+- PostgreSQL StatefulSet configuration in Helm chart
+- Database initialization scripts (scripts/db.sh)
+- Docker Compose health checks for both webapp and PostgreSQL
+- Connection pooling for PostgreSQL using psycopg2.pool
+- Database backup script (scripts/backup.sh)
+- Wait-for-database script (scripts/wait-for-db.sh)
 
 ### Changed
 - Complete redesign of the HTML template (templates/index.html)
@@ -28,6 +34,9 @@ All notable changes to this project will be documented in this file.
 - Updated Flask application to pass APP_VERSION to template
 - Enhanced log display with timestamps and improved styling
 - Added version badge and Kubernetes ready indicator
+- Updated Docker Compose with health check configurations
+- Updated values.yaml in Helm chart with PostgreSQL health check settings
+- Enhanced app.py with connection pooling and health check improvements
 
 ### Removed
 - Old terminal-style interface with green prompt and cursor animation

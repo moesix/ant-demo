@@ -79,7 +79,7 @@
                             <ul class="log-list">
                                 {% for log in logs %}
                                 <li class="log-item">
-                                    <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                                    <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else 'N/A' }}</span>
                                     <span class="log-message">{{ log.message }}</span>
                                 </li>
                                 {% endfor %}
