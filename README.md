@@ -84,6 +84,15 @@ scripts/
 ├───db.sh
 ├───wait-for-db.sh
 └───backup.sh
+tests/
+├───test_app.py
+├───test_database.py
+├───test_database_integration.py
+└───test_e2e.py
+migrations/
+├───versions/
+│   └───e65f7dba4983_initial_migration_create_access_logs_.py
+└───alembic.ini
 ```
 
 *   `app.py`: The main Python Flask application.
@@ -94,6 +103,8 @@ scripts/
 *   `.github/workflows/ci-cd.yml`: GitHub Actions workflow for CI/CD.
 *   `static/`: Static assets like CSS.
 *   `templates/`: HTML templates for the Flask application.
+*   `tests/`: Comprehensive test suite including unit, integration, and end-to-end tests.
+*   `migrations/`: Database migration files managed with Flask-Migrate.
 
 ## Getting Started
 
@@ -108,7 +119,6 @@ docker-compose up -d
 
 # Wait for database to be ready and initialize
 sleep 30
-docker-compose exec webapp /app/scripts/db.sh init
 
 # Check application status
 docker-compose ps
@@ -136,11 +146,11 @@ open http://localhost:5001
 
 #### Database Management:
 ```bash
-# Initialize database schema
-docker-compose exec webapp /app/scripts/db.sh init
+# Initialize database schema (Flask-Migrate)
+docker-compose exec webapp flask db upgrade
 
-# Seed with test data
-docker-compose exec webapp /app/scripts/db.sh seed
+# Check if access_logs table exists
+docker-compose exec postgres_db psql -U antuser -d antdemo -c "SELECT * FROM access_logs;"
 
 # Create database backup
 ./scripts/backup.sh
