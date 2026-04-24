@@ -8,6 +8,15 @@ The application is a Python Flask web application with three distinct versions, 
 
 ## Features
 
+### Health Check Endpoint
+The application now includes a `/health` endpoint that provides:
+- Application health status (healthy/unhealthy)
+- Current version information
+- Database connection status (for v3)
+- System boot time
+
+This endpoint is used by Kubernetes liveness, readiness, and startup probes.
+
 ### Programming & Docker
 
 1.  **Simple Web Application (Python Flask):**
@@ -53,10 +62,37 @@ k8s/
 ├───deployment.yml
 ├───service.yml
 └───storage-class.yml
+charts/
+└───ant-demo/
+    ├───templates/
+    │   ├───deployment.yaml
+    │   ├───service.yaml
+    │   ├───ingressroute.yaml
+    │   ├───hpa.yaml
+    │   ├───pdb.yaml
+    │   ├───middleware.yaml
+    │   ├───serviceaccount.yaml
+    │   ├───rolebinding.yaml
+    │   └───_helpers.tpl
+    ├───Chart.yaml
+    └───values.yaml
 static/
 └───style.css
 templates/
 └───index.html
+scripts/
+├───db.sh
+├───wait-for-db.sh
+└───backup.sh
+tests/
+├───test_app.py
+├───test_database.py
+├───test_database_integration.py
+└───test_e2e.py
+migrations/
+├───versions/
+│   └───e65f7dba4983_initial_migration_create_access_logs_.py
+└───alembic.ini
 ```
 
 *   `app.py`: The main Python Flask application.
@@ -67,36 +103,114 @@ templates/
 *   `.github/workflows/ci-cd.yml`: GitHub Actions workflow for CI/CD.
 *   `static/`: Static assets like CSS.
 *   `templates/`: HTML templates for the Flask application.
+*   `tests/`: Comprehensive test suite including unit, integration, and end-to-end tests.
+*   `migrations/`: Database migration files managed with Flask-Migrate.
 
 ## Getting Started
 
 ### Local Development with Docker
 
-1.  **Build the Docker Image:**
-    ```bash
-    docker build -t ant-demo:v1 .
-    ```
-2.  **Run the Container:**
-    ```bash
-    docker run -p 5000:5000 ant-demo:v1
-    ```
-3.  Access the application at `http://localhost:5000`.
+#### Run with Docker Compose (Recommended for v3):
+```bash
+# Build and run the application
+cp .env.example .env
+docker build -t ant-demo:v3 .
+docker-compose up -d
+
+# Wait for database to be ready and initialize
+sleep 30
+
+# Check application status
+docker-compose ps
+
+# Access the application
+open http://localhost:5001
+```
+
+#### Run Individual Versions:
+```bash
+# Version 1 - Hello World
+docker build -t ant-demo:v1 .
+docker run -p 5000:5000 ant-demo:v1
+
+# Version 2 - System Info
+docker build -t ant-demo:v2 .
+docker run -p 5000:5000 -e APP_VERSION=2 ant-demo:v2
+
+# Version 3 - PostgreSQL Logging (requires database)
+cp .env.example .env
+docker build -t ant-demo:v3 .
+docker-compose up -d
+open http://localhost:5001
+```
+
+#### Database Management:
+```bash
+# Initialize database schema (Flask-Migrate)
+docker-compose exec webapp flask db upgrade
+
+# Check if access_logs table exists
+docker-compose exec postgres_db psql -U antuser -d antdemo -c "SELECT * FROM access_logs;"
+
+# Create database backup
+./scripts/backup.sh
+
+# Check database health
+docker-compose exec webapp /app/scripts/db.sh health
+```
 
 ### Deployment to Kubernetes
 
-1.  **Prerequisites:**
-    *   A running Kubernetes cluster (e.g., Minikube, GKE, EKS, AKS).
-    *   `kubectl` configured to connect to your cluster.
-2.  **Apply Kubernetes Manifests:**
+#### Prerequisites:
+*   A running Kubernetes cluster (e.g., Minikube, GKE, EKS, AKS).
+*   `kubectl` configured to connect to your cluster.
+*   Helm 3.x installed.
+*   Traefik ingress controller deployed.
+
+#### Deploying with Helm:
+1.  **Add Traefik Helm Repository:**
     ```bash
-    kubectl apply -f k8s/
+    helm repo add traefik https://helm.traefik.io/traefik
+    helm repo update
     ```
-3.  **Monitor Deployment:**
+
+2.  **Deploy Traefik Ingress Controller:**
     ```bash
-    kubectl get pods
-    kubectl get services
+    helm install traefik traefik/traefik --namespace traefik --create-namespace \
+      --set service.type=LoadBalancer \
+      --set ports.web.port=80 \
+      --set ports.websecure.port=443 \
+      --set logs.access.enabled=true \
+      --set metrics.prometheus.enabled=true
     ```
-4.  Access the application using the service's external IP or NodePort.
+
+3.  **Deploy Ant Demo Application:**
+    ```bash
+    cd charts/ant-demo
+    helm dependency update
+    helm install ant-demo . --namespace ant-demo --create-namespace
+    ```
+
+4.  **Monitor Deployment:**
+    ```bash
+    kubectl get pods -n ant-demo
+    kubectl get services -n ant-demo
+    kubectl get ingressroutes -n ant-demo
+    ```
+
+5.  **Access the Application:**
+    Add an entry to your `/etc/hosts` file pointing to the Traefik LoadBalancer IP:
+    ```
+    <TRAEFIK_EXTERNAL_IP> ant-demo.local
+    ```
+    
+    Then access the application at `https://ant-demo.local`
+
+#### Deploying with Traditional Manifests:
+If you prefer not to use Helm, you can still use the traditional Kubernetes manifests:
+```bash
+kubectl apply -f k8s/
+```
 
 ## CI/CD
 
