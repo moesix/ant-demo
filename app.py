@@ -1,8 +1,6 @@
 import os
 import psutil
-import psycopg2
 from flask import Flask, render_template, jsonify
-from psycopg2 import pool
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
@@ -22,49 +20,6 @@ app.config['SQLALCHEMY_POOL_RECYCLE'] = 1800
 # Initialize SQLAlchemy and Migrate
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-# Database Connection Pool
-DB_POOL = None
-
-def init_db_pool():
-    """Initialize database connection pool"""
-    global DB_POOL
-    try:
-        DB_POOL = psycopg2.pool.SimpleConnectionPool(
-            minconn=1,
-            maxconn=10,
-            host=os.environ.get('DB_HOST'),
-            database=os.environ.get('DB_NAME'),
-            user=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASSWORD')
-        )
-        app.logger.info("Database connection pool initialized")
-    except Exception as e:
-        app.logger.error(f"Failed to initialize database connection pool: {e}")
-
-def get_db_connection():
-    """Get connection from pool or fall back to direct connection"""
-    try:
-        if DB_POOL:
-            return DB_POOL.getconn()
-        else:
-            conn = psycopg2.connect(
-                host=os.environ.get('DB_HOST'),
-                database=os.environ.get('DB_NAME'),
-                user=os.environ.get('DB_USER'),
-                password=os.environ.get('DB_PASSWORD'))
-            return conn
-    except psycopg2.OperationalError as e:
-        # Return the error to be displayed on the page
-        return e
-
-def release_db_connection(conn):
-    """Release connection back to pool"""
-    if DB_POOL and conn:
-        try:
-            DB_POOL.putconn(conn)
-        except Exception as e:
-            app.logger.error(f"Failed to release connection: {e}")
 
 # Database Models (for Flask-SQLAlchemy)
 class AccessLog(db.Model):
@@ -93,14 +48,16 @@ def health():
     
     # Check database connection for v3
     if app_version == '3':
-        conn = get_db_connection()
-        if isinstance(conn, Exception):
+        try:
+            # Attempt to connect to the database
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+            health_status['database'] = 'connected'
+        except Exception as e:
             health_status['status'] = 'unhealthy'
             health_status['database'] = 'connection failed'
             return jsonify(health_status), 500
-        else:
-            health_status['database'] = 'connected'
-            release_db_connection(conn)
     
     return jsonify(health_status), 200
 
@@ -132,38 +89,48 @@ def index():
     }
 
     elif app_version == '3':
-        conn = get_db_connection()
-        if isinstance(conn, Exception):
-            context['content'] = f"Database Connection Error: {conn}"
-            context['APP_VERSION'] = APP_VERSION
-            return render_template('index.html', **context), 500
-        
         try:
-            cur = conn.cursor()
-            # Log the current access
-            cur.execute("INSERT INTO access_logs (log_message, created_at) VALUES (%s, NOW())", (f"Site accessed from v3",))
-            conn.commit()
+            # Check if access_logs table exists and create it if necessary
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                result = conn.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'access_logs'
+                    );
+                """))
+                table_exists = result.scalar()
+                
+                if not table_exists:
+                    conn.execute(text("""
+                        CREATE TABLE access_logs (
+                            id SERIAL PRIMARY KEY,
+                            log_message VARCHAR(255) NOT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                        );
+                    """))
+                    conn.commit()
             
-            # get last 5 access logs
-            cur.execute("SELECT log_message, created_at FROM access_logs ORDER BY created_at DESC LIMIT 5")
-            fetched_logs = cur.fetchall()
+            # Log the current access
+            new_log = AccessLog(log_message="Site accessed from v3")
+            db.session.add(new_log)
+            db.session.commit()
+            
+            # Get last 5 access logs
+            fetched_logs = AccessLog.query.order_by(AccessLog.created_at.desc()).limit(5).all()
             
             # Format logs
             context['logs'] = []
-            for row in fetched_logs:
-                log = {'message': row[0]}
-                if row[1]:
-                    log['timestamp'] = row[1]
-                else:
-                    log['timestamp'] = None
-                context['logs'].append(log)
+            for log in fetched_logs:
+                context['logs'].append({
+                    'message': log.log_message,
+                    'timestamp': log.created_at
+                })
             context['content'] = "Your access has been logged to PGSQL."
-
-            cur.close()
-            release_db_connection(conn)
         except Exception as e:
             context['content'] = f"Database query failed: {e}"
-            context['APP_VERSION'] = APP_VERSION
+            context['APP_VERSION'] = app_version
             return render_template('index.html', **context), 500
 
     else:
@@ -175,24 +142,11 @@ def index():
     return render_template('index.html', **context)
 
 if __name__ == "__main__":
-    # Initialize database connection pool
-    init_db_pool()
-    
-    # Table check for v3
-    if get_app_version() == '3':
-        conn = get_db_connection()
-        if not isinstance(conn, Exception):
-            cur = conn.cursor()
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS access_logs (
-                    id SERIAL PRIMARY KEY,
-                    log_message VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            conn.commit()
-            cur.close()
-            release_db_connection(conn)
-            print("Database table 'access_logs' checked/created.")
+    # Create tables if they don't exist (for v3)
+    with app.app_context():
+        if get_app_version() == '3':
+            # Create all tables
+            db.create_all()
+            print("Database tables checked/created.")
 
     app.run(host='0.0.0.0', port=5000)
