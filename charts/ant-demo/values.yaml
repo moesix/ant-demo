@@ -7,7 +7,21 @@ replicaCount: 1
 image:
   repository: ghcr.io/moesix/ant-demo
   pullPolicy: IfNotPresent
-  tag: "v3"
+  tag: "v4"
+
+userService:
+  image:
+    repository: ghcr.io/moesix/ant-demo-user-service
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  replicaCount: 2
+
+loggingService:
+  image:
+    repository: ghcr.io/moesix/ant-demo-logging-service
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  replicaCount: 2
 
 imagePullSecrets: []
 nameOverride: ""
@@ -38,6 +52,18 @@ service:
   port: 80
   targetPort: 5000
 
+userService:
+  service:
+    type: ClusterIP
+    httpPort: 5000
+    grpcPort: 50051
+
+loggingService:
+  service:
+    type: ClusterIP
+    httpPort: 5000
+    grpcPort: 50052
+
 ingress:
   enabled: true
   className: "traefik"
@@ -63,6 +89,24 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+
+userService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+loggingService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
 autoscaling:
   enabled: false
@@ -96,10 +140,14 @@ persistence:
   storageClassName: ""
 
 env:
-  APP_VERSION: "3"
+  APP_VERSION: "4"
   DB_HOST: "ant-demo-postgresql"
   DB_NAME: "antdemo"
   DB_USER: "antuser"
+  USER_SERVICE_HOST: "ant-demo-user-service"
+  USER_SERVICE_PORT: "50051"
+  LOGGING_SERVICE_HOST: "ant-demo-logging-service"
+  LOGGING_SERVICE_PORT: "50052"
 
 postgresql:
   enabled: true

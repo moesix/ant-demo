@@ -1,227 +1,527 @@
 # Ant Demo Application
 
-This project demonstrates a simple web application designed for Ant, showcasing Docker containerization, Kubernetes deployment, rolling updates, and CI/CD pipelines.
+A comprehensive Kubernetes cluster application showcase demonstrating modern cloud native development and operations practices. This project serves as a learning resource for developers and SREs, covering everything from simple Flask applications to advanced microservices architectures.
 
 ## Project Overview
 
-The application is a Python Flask web application with three distinct versions, each demonstrating different functionalities. It's packaged using Docker and deployed to a Kubernetes cluster, illustrating modern application deployment and management practices.
+The Ant Demo application has evolved through multiple phases, each demonstrating different architectural patterns and Kubernetes features. What started as a simple "Hello World" Flask app has grown into a full microservices architecture with API gateway, gRPC services, and Kubernetes-native routing.
 
-## Features
+### Application Phases
 
-### Health Check Endpoint
-The application now includes a `/health` endpoint that provides:
-- Application health status (healthy/unhealthy)
-- Current version information
-- Database connection status (for v3)
-- System boot time
+This project demonstrates the progression from a simple monolithic application to a sophisticated microservices architecture:
 
-This endpoint is used by Kubernetes liveness, readiness, and startup probes.
+| Phase | Version | Features | Status |
+|-------|---------|----------|--------|
+| Phase 1 | v1-v3 | Flask app with progressive features | Complete |
+| Phase 2.1 | v4 | Kong Gateway + Microservices + gRPC | Complete |
+| Phase 2.2 | v5 | Real-time WebSocket metrics + Prometheus | Current |
+| Phase 2.3 | v6 | Service mesh (Istio) | Planned |
+| Phase 2.4 | v7 | Event-driven architecture | Planned |
 
-### Programming & Docker
+---
 
-1.  **Simple Web Application (Python Flask):**
-    *   **Version 1:** Displays "Hello World".
-    *   **Version 2:** Displays OS information (e.g., CPU usage).
-    *   **Version 3:** Logs access to the site to a data storage (e.g., PostgreSQL).
-2.  **Docker Packaging:** The web application is containerized using Docker. While a data storage solution is mentioned in the requirements, the current project structure primarily focuses on the web application's containerization.
-3.  **Version Tagging:** Docker images are tagged appropriately for each version.
-4.  **Security Best Practices:** Docker images are built following security best practices.
-5.  **Container Demo:** The application can be demonstrated running within a Docker container.
+## Phase 1: Foundation
 
-### Container Orchestration (Kubernetes)
+### Version 1 - Hello World
 
-1.  **Kubernetes Cluster:** The application is designed to be deployed on a Kubernetes cluster with at least two worker nodes.
-2.  **Application Deployment:** The web application is deployed to the Kubernetes cluster.
-3.  **Monitoring & Alerting:** Implementation for metrics, logs monitoring, and alerting for the web application.
-4.  **Version Demos:**
-    *   Demonstrates all three versions of the web application running in the cluster.
-    *   Showcases seamless application version upgrades and rollbacks without downtime using Kubernetes rolling updates.
-5.  **Monitoring & Alerting Demo:** Demonstrates the configured monitoring and alerting systems.
+The simplest version displays "Hello World" - perfect for learning Flask basics.
 
-### CI/CD
+```bash
+docker build -t ant-demo:v1 .
+docker run -p 5000:5000 ant-demo:v1
+# Access: http://localhost:5000
+```
 
-1.  **Source Code Version Control:** The project uses Git for source code version control.
-2.  **Public Code Repository:** Application files are uploaded to a public code repository (e.g., GitHub).
-3.  **CI/CD Pipeline:** Implements a CI/CD pipeline to package and deploy the application to the Kubernetes cluster.
-4.  **Release Process Explanation:** Provides a clear explanation of the process and steps for releasing a new application version to be deployed to the container orchestration platform.
+### Version 2 - System Information
+
+Displays OS information (CPU, memory, disk, network) - demonstrates system monitoring.
+
+```bash
+docker build -t ant-demo:v2 .
+docker run -p 5000:5000 -e APP_VERSION=2 ant-demo:v2
+# Access: http://localhost:5000
+```
+
+### Version 3 - PostgreSQL Logging
+
+Logs access to PostgreSQL database and displays recent logs - introduces database integration.
+
+```bash
+cp .env.example .env
+docker build -t ant-demo:v3 .
+docker-compose up -d
+# Access: http://localhost:5001
+```
+
+---
+
+## Phase 2.2: Real-time Metrics (Current)
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Kong API Gateway                          │
+│     Ports: 8000 (HTTP), 8443 (TLS), 9000 (gRPC), 8001 (Admin)  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+            ┌─────────────────┼─────────────────┐
+            │                 │                 │
+            ▼                 ▼                 ▼
+    ┌────────────┐    ┌────────────┐    ┌────────────┐
+    │   Webapp   │    │    User    │    │  Logging   │
+    │    (v5)    │    │  Service  │    │  Service   │
+    │ :5000 + WS │    │ :50051 gRPC│    │ :50052 gRPC│
+    └─────┬──────┘    └─────┬──────┘    └─────┬──────┘
+          │                 │                 │
+          └─────────────────┼─────────────────┘
+                             │
+                             ▼
+                    ┌───────────────┐
+                    │  PostgreSQL   │
+                    │  :5432        │
+                    └───────────────┘
+```
+
+### New Features
+
+| Feature | Description |
+|---------|-------------|
+| **WebSocket Metrics** | Real-time system metrics streaming at 2-second intervals |
+| **Chart.js Dashboard** | 5 interactive charts showing CPU, memory, disk, network metrics |
+| **Prometheus Integration** | Metrics endpoint `/api/webapp/metrics` with custom collectors |
+| **Metrics Collection** | Background thread collecting system data via psutil |
+
+### Services
+
+| Service | Port | Protocol | Description |
+|---------|------|----------|-------------|
+| Webapp (v5) | 5000 | HTTP + WebSocket | Real-time metrics dashboard |
+| Kong Gateway | 8000 | HTTP | API routing |
+| Kong Admin | 8001 | HTTP | Gateway management |
+| Prometheus Scraper | n/a | HTTP | Metrics collection (configurable) |
+
+### Prometheus Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `antdemo_requests_total` | Counter | Total HTTP requests received |
+| `antdemo_request_duration_seconds` | Histogram | Request latency |
+| `antdemo_active_connections` | Gauge | Active WebSocket connections |
+| `antdemo_system_cpu` | Gauge | System CPU usage percentage |
+| `antdemo_system_memory` | Gauge | System memory usage percentage |
+| `antdemo_system_disk` | Gauge | System disk usage percentage |
+| `antdemo_system_net_sent` | Gauge | Network bytes sent |
+| `antdemo_system_net_recv` | Gauge | Network bytes received |
+| `antdemo_database_queries` | Counter | Database queries executed |
+| `antdemo_errors_total` | Counter | Application errors |
+
+### Accessing the Dashboard
+
+```bash
+# Run v5 directly
+docker run -d --name ant-demo-webapp-1 --network ant-demo_default --env-file .env -e APP_VERSION=5 -p 5001:5000 --hostname webapp ant-demo-webapp
+
+# Access via Kong
+curl http://localhost:8000/api/webapp/health  # Check health
+curl http://localhost:8000/api/webapp/metrics  # Prometheus endpoint
+open http://localhost:8000/api/webapp/  # Open dashboard
+```
+
+---
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Kong API Gateway                          │
+│     Ports: 8000 (HTTP), 8443 (TLS), 9000 (gRPC), 8001 (Admin)   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+           ┌─────────────────┼─────────────────┐
+           │                 │                 │
+           ▼                 ▼                 ▼
+    ┌────────────┐    ┌────────────┐    ┌────────────┐
+    │   Webapp   │    │    User    │    │  Logging   │
+    │    (UI)    │    │  Service  │    │  Service   │
+    │   :5000    │    │ :50051 gRPC│    │ :50052 gRPC│
+    └─────┬──────┘    └─────┬──────┘    └─────┬──────┘
+          │                 │                 │
+          └─────────────────┼─────────────────┘
+                             │
+                             ▼
+                    ┌───────────────┐
+                    │  PostgreSQL   │
+                    │  :5432        │
+                    └───────────────┘
+```
+
+### Services
+
+| Service | Port | Protocol | Description |
+|---------|------|----------|-------------|
+| Kong Gateway | 8000 | HTTP | Centralized routing |
+| Kong Admin | 8001 | HTTP | Gateway management |
+| Kong gRPC | 9000 | gRPC | gRPC proxying |
+| Webapp | 5000 | HTTP | UI service (v4) |
+| User Service | 50051 | gRPC | User management |
+| Logging Service | 50052 | gRPC | Access logging |
+
+### Kong Routes
+
+| Path | Service | Upstream | Description |
+|------|---------|----------|-------------|
+| /api/webapp/* | webapp | webapp:5000 | UI routes |
+| /api/users/* | user-service | user-service:5000 | User management |
+| /api/logs/* | logging-service | logging-service:5000 | Logging operations |
+
+### gRPC Services
+
+#### User Service (port 50051)
+
+```protobuf
+service UserService {
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc CreateUser(CreateUserRequest) returns (UserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (UserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+}
+```
+
+#### Logging Service (port 50052)
+
+```protobuf
+service LoggingService {
+  rpc CreateLog(CreateLogRequest) returns (LogResponse);
+  rpc GetLogs(GetLogsRequest) returns (GetLogsResponse);
+}
+```
+
+---
+
+## Getting Started
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/moesix/ant-demo.git
+cd ant-demo
+
+# Start all services
+docker compose up -d
+
+# Wait for services to be ready
+sleep 10
+
+# Verify all services are healthy
+curl http://localhost:8000/api/webapp/health
+curl http://localhost:8000/api/users/health
+curl http://localhost:8000/api/logs/health
+```
+
+### Local Development
+
+```bash
+# Build individual services
+docker build -t ant-demo:webapp ./webapp
+docker build -t ant-demo:user-service ./user-service
+docker build -t ant-demo:logging-service ./logging-service
+
+# Run with Docker Compose
+docker compose up -d
+
+# Check service status
+docker compose ps
+
+# View logs
+docker compose logs webapp
+docker compose logs kong
+```
+
+### Testing the Application
+
+```bash
+# Test UI through Kong
+curl http://localhost:8000/api/webapp/
+curl http://localhost:8000/api/webapp/health
+
+# Test microservices
+curl http://localhost:8000/api/users/health
+curl http://localhost:8000/api/logs/health
+
+# Test Kong Admin
+curl http://localhost:8001/status
+curl http://localhost:8001/services
+curl http://localhost:8001/routes
+```
+
+---
+
+## Kong Gateway Configuration
+
+### Declarative Configuration
+
+The Kong Gateway uses declarative configuration defined in `kong/kong.yml`:
+
+```yaml
+services:
+  - name: webapp-service
+    url: http://webapp:5000
+    
+  - name: user-service
+    url: http://user-service:5000
+    
+  - name: logging-service
+    url: http://logging-service:5000
+
+routes:
+  - name: webapp-route
+    paths: ["/api/webapp"]
+    service: webapp-service
+    
+  - name: user-service-route
+    paths: ["/api/users"]
+    service: user-service
+    
+  - name: logging-service-route
+    paths: ["/api/logs"]
+    service: logging-service
+```
+
+### Managing Kong
+
+```bash
+# Reload configuration
+curl -X POST http://localhost:8001/admin-api/reload
+
+# Add a new route
+curl -X POST http://localhost:8001/services \
+  -d "name=new-service" \
+  -d "url=http://new-service:5000"
+
+# Enable/disable plugins
+curl -X POST http://localhost:8001/plugins \
+  -d "name=rate-limiting" \
+  -d "config.minute=100"
+```
+
+---
+
+## gRPC API Reference
+
+### User Service
+
+```bash
+# Get user by ID
+grpcurl -plaintext -d '{"id": 1}' localhost:50051 user.UserService/GetUser
+
+# Create user
+grpcurl -plaintext -d '{"name": "John", "email": "john@example.com", "password": "secret"}' \
+  localhost:50051 user.UserService/CreateUser
+
+# List all users
+grpcurl -plaintext localhost:50051 user.UserService/ListUsers
+
+# Update user
+grpcurl -plaintext -d '{"id": 1, "name": "Jane", "email": "jane@example.com", "password": "newsecret"}' \
+  localhost:50051 user.UserService/UpdateUser
+
+# Delete user
+grpcurl -plaintext -d '{"id": 1}' localhost:50051 user.UserService/DeleteUser
+```
+
+### Logging Service
+
+```bash
+# Create log entry
+grpcurl -plaintext -d '{"message": "User logged in"}' \
+  localhost:50052 logging.LoggingService/CreateLog
+
+# Get recent logs
+grpcurl -plaintext -d '{"limit": 10}' localhost:50052 logging.LoggingService/GetLogs
+```
+
+---
+
+## Kubernetes Deployment
+
+### Prerequisites
+
+- Kubernetes cluster (Minikube, GKE, EKS, AKS)
+- kubectl configured
+- Helm 3.x (for Helm deployment)
+- Kong Gateway CRDs (for Gateway API)
+
+### Deploy with Traditional Manifests
+
+```bash
+# Deploy all resources
+kubectl apply -f k8s/
+
+# Check deployment status
+kubectl get deployments
+kubectl get services
+kubectl get pods
+
+# View logs
+kubectl logs -l app=webapp
+```
+
+### Deploy with Kong Gateway API
+
+```bash
+# Deploy Kong resources
+kubectl apply -f k8s/kong/
+
+# Check Gateway status
+kubectl get gatewayclass
+kubectl get gateway -n kong
+kubectl get httproute
+
+# Access the application
+kubectl get gateway -n kong -o jsonpath='{.status.addresses}'
+```
+
+### Deploy with Helm
+
+```bash
+# Add Traefik repository
+helm repo add traefik https://helm.traefik.io/traefik
+helm repo update
+
+# Install Traefik ingress controller
+helm install traefik traefik/traefik --namespace traefik --create-namespace
+
+# Deploy application
+cd charts/ant-demo
+helm dependency update
+helm install ant-demo . --namespace ant-demo --create-namespace
+```
+
+---
+
+## CI/CD Pipeline
+
+The GitHub Actions workflow (`.github/workflows/ci-cd.yml`) automates:
+
+1. **Build**: Docker image construction
+2. **Test**: Run pytest and Playwright tests
+3. **Security**: Trivy image scanning, SNYK dependency scanning
+4. **Push**: Image to GitHub Container Registry
+5. **Deploy**: To AWS EKS cluster
+
+### Triggering the Pipeline
+
+```bash
+git add .
+git commit -m "Your commit message"
+git push origin main
+```
+
+---
+
+## Testing
+
+### Run Tests Locally
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run unit and integration tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ --cov=. --cov-report=html
+
+# Open coverage report
+open htmlcov/index.html
+```
+
+### Run Tests in Docker
+
+```bash
+docker compose exec webapp python -m pytest tests/ -v
+```
+
+---
+
+## What's Next
+
+### Phase 2.2: Real-time Metrics (v5)
+
+- WebSocket server for live metrics
+- React dashboard with interactive charts
+- Prometheus integration with custom collectors
+
+### Phase 2.3: Service Mesh (Istio)
+
+- mTLS between services
+- Traffic management
+- Distributed tracing with Jaeger
+
+### Phase 2.4: Event-Driven Architecture
+
+- RabbitMQ integration
+- Message producer/consumer pattern
+- Dead letter queue implementation
+
+### Phase 3: Security Hardening
+
+- Pod Security Standards
+- Network Policies
+- HashiCorp Vault integration
+
+### Phase 4: Performance Optimization
+
+- Redis caching
+- Database query optimization
+- CDN integration
+
+---
 
 ## Project Structure
 
 ```
-.dockerignore
-.env.example
-app.py
-docker-compose.yml
-Dockerfile
-requirements.txt
-.git/
-.github/
-├───workflows/
-│   └───ci-cd.yml
-k8s/
-├───deployment.yml
-├───service.yml
-└───storage-class.yml
-charts/
-└───ant-demo/
-    ├───templates/
-    │   ├───deployment.yaml
-    │   ├───service.yaml
-    │   ├───ingressroute.yaml
-    │   ├───hpa.yaml
-    │   ├───pdb.yaml
-    │   ├───middleware.yaml
-    │   ├───serviceaccount.yaml
-    │   ├───rolebinding.yaml
-    │   └───_helpers.tpl
-    ├───Chart.yaml
-    └───values.yaml
-static/
-└───style.css
-templates/
-└───index.html
-scripts/
-├───db.sh
-├───wait-for-db.sh
-└───backup.sh
-tests/
-├───test_app.py
-├───test_database.py
-├───test_database_integration.py
-└───test_e2e.py
-migrations/
-├───versions/
-│   └───e65f7dba4983_initial_migration_create_access_logs_.py
-└───alembic.ini
+ant-demo/
+├── app.py                      # Webapp UI service (Flask)
+├── requirements.txt            # Python dependencies
+├── Dockerfile              # Multi-stage Docker build
+├── docker-compose.yml        # Docker Compose orchestration
+├── kong/
+���   └── kong.yml           # Kong declarative configuration
+├── k8s/
+│   ├── deployment.yml     # Kubernetes deployment
+│   ├── service.yml      # Kubernetes services
+│   └── kong/           # Kong Gateway API resources
+│       ├── gatewayclass.yaml
+│       ├── gateway.yaml
+│       ├── credentials.yaml
+│       └── kong-routes.yaml
+├── user-service/
+│   ├── app.py           # User service (Flask + gRPC)
+│   ├── Dockerfile
+│   └── protobuf/        # gRPC definitions
+├── logging-service/
+│   ├── app.py         # Logging service (Flask + gRPC)
+│   ├── Dockerfile
+│   └── protobuf/       # gRPC definitions
+├── scripts/
+│   └── init-db.sh      # Database initialization
+├── static/
+│   └── style.css
+└── templates/
+    └── index.html
 ```
 
-*   `app.py`: The main Python Flask application.
-*   `Dockerfile`: Defines the Docker image for the application.
-*   `requirements.txt`: Lists Python dependencies.
-*   `docker-compose.yml`: For local multi-container development (if applicable).
-*   `k8s/`: Contains Kubernetes deployment manifests (`deployment.yml`, `service.yml`, `storage-class.yml`).
-*   `.github/workflows/ci-cd.yml`: GitHub Actions workflow for CI/CD.
-*   `static/`: Static assets like CSS.
-*   `templates/`: HTML templates for the Flask application.
-*   `tests/`: Comprehensive test suite including unit, integration, and end-to-end tests.
-*   `migrations/`: Database migration files managed with Flask-Migrate.
+---
 
-## Getting Started
+## Documentation
 
-### Local Development with Docker
-
-#### Run with Docker Compose (Recommended for v3):
-```bash
-# Build and run the application
-cp .env.example .env
-docker build -t ant-demo:v3 .
-docker-compose up -d
-
-# Wait for database to be ready and initialize
-sleep 30
-
-# Check application status
-docker-compose ps
-
-# Access the application
-open http://localhost:5001
-```
-
-#### Run Individual Versions:
-```bash
-# Version 1 - Hello World
-docker build -t ant-demo:v1 .
-docker run -p 5000:5000 ant-demo:v1
-
-# Version 2 - System Info
-docker build -t ant-demo:v2 .
-docker run -p 5000:5000 -e APP_VERSION=2 ant-demo:v2
-
-# Version 3 - PostgreSQL Logging (requires database)
-cp .env.example .env
-docker build -t ant-demo:v3 .
-docker-compose up -d
-open http://localhost:5001
-```
-
-#### Database Management:
-```bash
-# Initialize database schema (Flask-Migrate)
-docker-compose exec webapp flask db upgrade
-
-# Check if access_logs table exists
-docker-compose exec postgres_db psql -U antuser -d antdemo -c "SELECT * FROM access_logs;"
-
-# Create database backup
-./scripts/backup.sh
-
-# Check database health
-docker-compose exec webapp /app/scripts/db.sh health
-```
-
-### Deployment to Kubernetes
-
-#### Prerequisites:
-*   A running Kubernetes cluster (e.g., Minikube, GKE, EKS, AKS).
-*   `kubectl` configured to connect to your cluster.
-*   Helm 3.x installed.
-*   Traefik ingress controller deployed.
-
-#### Deploying with Helm:
-1.  **Add Traefik Helm Repository:**
-    ```bash
-    helm repo add traefik https://helm.traefik.io/traefik
-    helm repo update
-    ```
-
-2.  **Deploy Traefik Ingress Controller:**
-    ```bash
-    helm install traefik traefik/traefik --namespace traefik --create-namespace \
-      --set service.type=LoadBalancer \
-      --set ports.web.port=80 \
-      --set ports.websecure.port=443 \
-      --set logs.access.enabled=true \
-      --set metrics.prometheus.enabled=true
-    ```
-
-3.  **Deploy Ant Demo Application:**
-    ```bash
-    cd charts/ant-demo
-    helm dependency update
-    helm install ant-demo . --namespace ant-demo --create-namespace
-    ```
-
-4.  **Monitor Deployment:**
-    ```bash
-    kubectl get pods -n ant-demo
-    kubectl get services -n ant-demo
-    kubectl get ingressroutes -n ant-demo
-    ```
-
-5.  **Access the Application:**
-    Add an entry to your `/etc/hosts` file pointing to the Traefik LoadBalancer IP:
-    ```
-    <TRAEFIK_EXTERNAL_IP> ant-demo.local
-    ```
-    
-    Then access the application at `https://ant-demo.local`
-
-#### Deploying with Traditional Manifests:
-If you prefer not to use Helm, you can still use the traditional Kubernetes manifests:
-```bash
-kubectl apply -f k8s/
-```
-
-## CI/CD
-
-The `.github/workflows/ci-cd.yml` file defines the CI/CD pipeline using GitHub Actions. This workflow automates the building of Docker images, tagging, pushing to a container registry, and deploying to the Kubernetes cluster upon code changes.
-
-## Versions
-
-This application supports three versions, each demonstrating a different feature:
-
-*   **Version 1 (v1):** Displays "Hello World".
-*   **Version 2 (v2):** Displays OS information.
-*   **Version 3 (v3):** Logs access to a data storage (requires a configured database connection).
-
-To switch between versions in Kubernetes, update the image tag in `k8s/deployment.yml` and apply the changes. Kubernetes will handle the rolling update to ensure zero downtime.
+| Document | Description |
+|----------|-------------|
+| [CHANGELOG.md](CHANGELOG.md) | Release history and changes |
+| [k8s-plan.md](k8s-plan.md) | Enhancement roadmap |
+| [documentation/walkthrough.md](documentation/walkthrough.md) | Step-by-step guide for Phase 1 |

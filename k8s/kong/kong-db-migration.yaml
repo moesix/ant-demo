@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kong-db-migration
+  namespace: kong
+  labels:
+    app: kong
+spec:
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      containers:
+        - name: kong-migration
+          image: kong:3.9
+          command: ["/bin/sh", "-c", "kong migrations bootstrap"]
+          env:
+            - name: KONG_DATABASE
+              value: "postgres"
+            - name: KONG_PG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_host
+            - name: KONG_PG_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_port
+            - name: KONG_PG_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_name
+            - name: KONG_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_user
+            - name: KONG_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_password
+      restartPolicy: OnFailure

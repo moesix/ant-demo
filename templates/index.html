@@ -72,21 +72,65 @@
                     </div>
                     {% endif %}
 
-                    {% if logs %}
-                    <div class="content-section">
-                        <h2 class="section-title">Access Logs</h2>
-                        <div class="logs-container">
-                            <ul class="log-list">
-                                {% for log in logs %}
-                                <li class="log-item">
-                                    <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else 'N/A' }}</span>
-                                    <span class="log-message">{{ log.message }}</span>
-                                </li>
-                                {% endfor %}
-                            </ul>
+            {% if is_metrics %}
+            <div class="content-section">
+                <h2 class="section-title">Real-time Metrics Dashboard</h2>
+                
+                <div class="metrics-dashboard">
+                    <div class="dashboard-grid">
+                        <!-- CPU Usage -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">CPU Usage</div>
+                            <div class="metric-value" id="cpuValue">0%</div>
+                            <div class="metric-chart">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Memory Usage -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Memory Usage</div>
+                            <div class="metric-value" id="memoryValue">0%</div>
+                            <div class="metric-chart">
+                                <canvas id="memoryChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Disk Usage -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Disk Usage</div>
+                            <div class="metric-value" id="diskValue">0%</div>
+                            <div class="metric-chart">
+                                <canvas id="diskChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Network Sent -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Network Sent</div>
+                            <div class="metric-value" id="netSentValue">0 MB</div>
+                            <div class="metric-chart">
+                                <canvas id="netSentChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Network Received -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Network Received</div>
+                            <div class="metric-value" id="netRecvValue">0 MB</div>
+                            <div class="metric-chart">
+                                <canvas id="netRecvChart"></canvas>
+                            </div>
                         </div>
                     </div>
-                    {% endif %}
+                </div>
+                
+                <!-- Prometheus Metrics Link -->
+                <div class="prometheus-link">
+                    <a href="/metrics" class="prometheus-btn" target="_blank">View Prometheus Metrics</a>
+                </div>
+            </div>
+            {% endif %}
                 </div>
 
                 <div class="card-footer">
@@ -128,6 +172,169 @@
             </div>
         </div>
     </main>
+
+    <!-- Socket.IO and Chart.js -->
+    {% if is_metrics %}
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Socket.IO connection
+        const socket = io();
+        
+        // Metrics data buffers (keep last 50 points)
+        const maxDataPoints = 50;
+        const metricsData = {
+            cpu: { values: [], timestamps: [] },
+            memory: { values: [], timestamps: [] },
+            disk: { values: [], timestamps: [] },
+            net_sent: { values: [], timestamps: [] },
+            net_recv: { values: [], timestamps: [] }
+        };
+        
+        // Chart configurations
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { beginAtZero: true, max: 100 }
+            }
+        };
+        
+        const netChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { beginAtZero: true }
+            }
+        };
+        
+        const cpuChart = new Chart(document.getElementById('cpuChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#10b981' }] },
+            options: chartOptions
+        });
+        
+        const memoryChart = new Chart(document.getElementById('memoryChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6' }] },
+            options: chartOptions
+        });
+        
+        const diskChart = new Chart(document.getElementById('diskChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#f59e0b' }] },
+            options: chartOptions
+        });
+        
+        const netSentChart = new Chart(document.getElementById('netSentChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#8b5cf6' }] },
+            options: netChartOptions
+        });
+        
+        const netRecvChart = new Chart(document.getElementById('netRecvChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#ec4899' }] },
+            options: netChartOptions
+        });
+        
+        // Update metrics
+        function updateMetrics(data) {
+            const timestamp = new Date(data.timestamp * 1000);
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            // CPU
+            if (data.cpu !== undefined) {
+                metricsData.cpu.values.push(data.cpu);
+                metricsData.cpu.timestamps.push(timeStr);
+                if (metricsData.cpu.values.length > maxDataPoints) {
+                    metricsData.cpu.values.shift();
+                    metricsData.cpu.timestamps.shift();
+                }
+                document.getElementById('cpuValue').textContent = data.cpu.toFixed(1) + '%';
+                cpuChart.data.labels = metricsData.cpu.timestamps;
+                cpuChart.data.datasets[0].data = metricsData.cpu.values;
+                cpuChart.update('none');
+            }
+            
+            // Memory
+            if (data.memory !== undefined) {
+                metricsData.memory.values.push(data.memory);
+                metricsData.memory.timestamps.push(timeStr);
+                if (metricsData.memory.values.length > maxDataPoints) {
+                    metricsData.memory.values.shift();
+                    metricsData.memory.timestamps.shift();
+                }
+                document.getElementById('memoryValue').textContent = data.memory.toFixed(1) + '%';
+                memoryChart.data.labels = metricsData.memory.timestamps;
+                memoryChart.data.datasets[0].data = metricsData.memory.values;
+                memoryChart.update('none');
+            }
+            
+            // Disk
+            if (data.disk !== undefined) {
+                metricsData.disk.values.push(data.disk);
+                metricsData.disk.timestamps.push(timeStr);
+                if (metricsData.disk.values.length > maxDataPoints) {
+                    metricsData.disk.values.shift();
+                    metricsData.disk.timestamps.shift();
+                }
+                document.getElementById('diskValue').textContent = data.disk.toFixed(1) + '%';
+                diskChart.data.labels = metricsData.disk.timestamps;
+                diskChart.data.datasets[0].data = metricsData.disk.values;
+                diskChart.update('none');
+            }
+            
+            // Network Sent
+            if (data.net_sent !== undefined) {
+                const mbSent = (data.net_sent / (1024 * 1024)).toFixed(2);
+                metricsData.net_sent.values.push(data.net_sent);
+                metricsData.net_sent.timestamps.push(timeStr);
+                if (metricsData.net_sent.values.length > maxDataPoints) {
+                    metricsData.net_sent.values.shift();
+                    metricsData.net_sent.timestamps.shift();
+                }
+                document.getElementById('netSentValue').textContent = mbSent + ' MB';
+                netSentChart.data.labels = metricsData.net_sent.timestamps;
+                netSentChart.data.datasets[0].data = metricsData.net_sent.values;
+                netSentChart.update('none');
+            }
+            
+            // Network Received
+            if (data.net_recv !== undefined) {
+                const mbRecv = (data.net_recv / (1024 * 1024)).toFixed(2);
+                metricsData.net_recv.values.push(data.net_recv);
+                metricsData.net_recv.timestamps.push(timeStr);
+                if (metricsData.net_recv.values.length > maxDataPoints) {
+                    metricsData.net_recv.values.shift();
+                    metricsData.net_recv.timestamps.shift();
+                }
+                document.getElementById('netRecvValue').textContent = mbRecv + ' MB';
+                netRecvChart.data.labels = metricsData.net_recv.timestamps;
+                netRecvChart.data.datasets[0].data = metricsData.net_recv.values;
+                netRecvChart.update('none');
+            }
+        }
+        
+        // Socket.IO event handlers
+        socket.on('connection_established', (data) => {
+            console.log('Connected to metrics stream:', data);
+        });
+        
+        socket.on('metric_update', (data) => {
+            updateMetrics(data);
+        });
+        
+        // Request initial data
+        socket.emit('metric_request', { type: 'all' });
+    </script>
+    {% endif %}
 
     <footer class="footer">
         <div class="footer-content">

@@ -16,13 +16,10 @@ COPY --from=builder /usr/src/app/wheels /wheels
 
 RUN pip install --no-cache /wheels/*
 
-# Install Playwright browsers
-RUN playwright install chromium
-
 COPY . .
 
 USER appuser
 
-EXPOSE 5000
+EXPOSE 5000 50051
 
 CMD ["python", "app.py"]
