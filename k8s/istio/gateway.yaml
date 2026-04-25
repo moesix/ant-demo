@@ -1,0 +1,41 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ant-demo-gateway
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: ant-demo-gateway
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: ant-demo-tls
+    hosts:
+    - "*"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ant-demo-tls
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: ant-demo-tls
+    app.kubernetes.io/part-of: ant-demo
+type: kubernetes.io/tls
+data:
+  # Self-signed certificate (will be replaced in production)
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURJVENDQVNXZ0F3SUJBZ0lVTE5KVVhKcGFsUUw0cW53a1lZRElnR0NTSUdBMVVFQXhNS2EzVmlaWEp1WlhSbGN6UXhOakU0TURBMU1qSXcKY0RBMk1UUTVNVFV3T1RBMU16QTNNQjRYRFRJeU1EVXhNek14T1RBMU9Wb1hEVE15TURVeE16WXhPVEE9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSURFakNDQTRXZ0F3SUJBZ0lVTE5KVVhKcGFsUUw0cW53a1lZRElnR0NTSUdBMVVFQXhNS2EzVmlaWEp1WlhSbGN6UXhOakU0TURBMU1qSXcKY0RBMk1UUTVNVFV3T1RBMU16QTNNQjRYRFRJeU1EVXhNek14T1RBMU9Wb1hEVE15TURVeE16WXhPVEE9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K

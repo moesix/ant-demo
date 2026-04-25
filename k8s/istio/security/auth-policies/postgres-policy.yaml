@@ -1,0 +1,20 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: postgres-policy
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: postgres-policy
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  selector:
+    matchLabels:
+      app: postgres-db
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/ant-demo/sa/default"
+    to:
+    - operation:
+        ports: ["5432"]

@@ -2,19 +2,19 @@ _format_version: "3.0"
 _transform: true
 
 services:
-  # Webapp Service
+  # Webapp Service - Routed through Istio Ingress
   - name: webapp-service
-    url: http://webapp:5000
+    url: http://istio-ingressgateway.istio-system.svc.cluster.local:80
     tags: ["webapp", "ui"]
 
-  # User Service (HTTP)
+  # User Service (HTTP) - Routed through Istio Ingress
   - name: user-service
-    url: http://user-service:5000
+    url: http://istio-ingressgateway.istio-system.svc.cluster.local:80
     tags: ["user-service"]
 
-  # Logging Service (HTTP)
+  # Logging Service (HTTP) - Routed through Istio Ingress
   - name: logging-service
-    url: http://logging-service:5000
+    url: http://istio-ingressgateway.istio-system.svc.cluster.local:80
     tags: ["logging-service"]
 
 routes:

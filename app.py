@@ -216,14 +216,14 @@ def index():
 def handle_connect():
     """Handle new WebSocket connection"""
     ACTIVE_CONNECTIONS.inc()
-    print(f"New WebSocket connection: {request.sid}")
+    print(f"New WebSocket connection")
     emit('connection_established', {'data': 'Connected'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle WebSocket disconnection"""
     ACTIVE_CONNECTIONS.dec()
-    print(f"WebSocket disconnected: {request.sid}")
+    print(f"WebSocket disconnected")
 
 @socketio.on('metric_request')
 def handle_metric_request(data):

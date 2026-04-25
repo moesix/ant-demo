@@ -19,6 +19,14 @@ spec:
     metadata:
       labels:
         app: ant-demo-webapp
+        version: "5"
+      annotations:
+        sidecar.istio.io/inject: "true"
+        traffic.sidecar.istio.io/excludeInboundPorts: ""
+        traffic.sidecar.istio.io/excludeOutboundPorts: ""
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/api/webapp/metrics"
     spec:
       containers:
       - name: webapp
@@ -28,7 +36,7 @@ spec:
         - containerPort: 5000
         env:
         - name: APP_VERSION
-          value: "4"
+          value: "5"
         - name: DB_HOST
           value: "postgres-db"
         - name: DB_PORT
@@ -100,6 +108,11 @@ spec:
     metadata:
       labels:
         app: ant-demo-user-service
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/health"
     spec:
       containers:
       - name: user-service
@@ -180,6 +193,11 @@ spec:
     metadata:
       labels:
         app: ant-demo-logging-service
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/health"
     spec:
       containers:
       - name: logging-service

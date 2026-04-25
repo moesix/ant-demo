@@ -1,0 +1,31 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: logging-service-virtualservice
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: logging-service-virtualservice
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - ant-demo-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api/logs/
+    route:
+    - destination:
+        host: ant-demo-logging-service
+        port:
+          number: 5000
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: "5xx,connect-failure"
+    fault:
+      delay:
+        fixedDelay: 500ms
+        percentage:
+          value: 10

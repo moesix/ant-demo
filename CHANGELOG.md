@@ -83,6 +83,102 @@ All notable changes to this project will be documented in this file, organized b
 
 ### Added
 
+- **Istio Service Mesh**: Complete service mesh implementation with:
+  - Automatic sidecar injection
+  - Mutual TLS (mTLS) between services
+  - Traffic management with virtual services and destination rules
+  - Fault injection for testing resilience
+  - Circuit breaker and retry configurations
+  - Outlier detection
+
+- **Observability Stack**:
+  - Kiali for service mesh visualization
+  - Prometheus for metrics collection
+  - Jaeger for distributed tracing
+  - Grafana dashboards for monitoring
+
+- **Security Features**:
+  - PeerAuthentication for strict mTLS mode
+  - AuthorizationPolicies for service-to-service access control
+  - TLS termination at mesh boundary
+
+- **Traffic Management**:
+  - Load balancing (ROUND_ROBIN, least connections)
+  - Timeouts and retries
+  - Canary deployment support with weighted routing
+  - Fault injection (delays, aborts)
+
+- **Kubernetes Resources**:
+  - Istio control plane installation
+  - Virtual services for each application endpoint
+  - Destination rules with subsets
+  - PeerAuthentication and AuthorizationPolicy configurations
+  - Ingress gateway with TLS termination
+  - Service mesh policies for traffic management
+
+### Changed
+
+- **Application Deployment**:
+  - Updated deployment.yaml with Istio annotations
+  - Added prometheus.io scraping annotations
+  - Changed from direct service-to-service to mesh communication
+
+- **Kong Configuration**:
+  - Updated service URLs to route through Istio ingress gateway
+  - Changed from `http://webapp:5000` to `http://istio-ingressgateway.istio-system.svc.cluster.local:80`
+  - Kept rate limiting and CORS policies intact
+
+### New Files Created
+
+**Kubernetes Manifests:**
+- `k8s/istio/namespace.yaml`: Namespace with istio-injection label
+- `k8s/istio/gateway.yaml`: Istio ingress gateway configuration
+- `k8s/istio/virtualservices/*.yaml`: Route definitions for each service
+- `k8s/istio/destinationrules/*.yaml`: Load balancing and fault tolerance configs
+- `k8s/istio/security/mesh-policy.yaml`: mTLS policy
+- `k8s/istio/security/auth-policies/*.yaml`: Authorization policies
+- `k8s/istio/observability/*.yaml`: Prometheus, Kiali, Jaeger addons
+
+**Documentation:**
+- `documentation/ISTIO-SETUP.md`: Complete installation and usage guide
+
+**Scripts:**
+- `scripts/install-istio.sh`: Istio control plane installation
+- `scripts/deploy-all.sh`: Full application deployment script
+- `scripts/verify-deployment.sh`: Deployment verification
+- `scripts/cleanup.sh`: Complete teardown
+
+### Deployment Instructions
+
+```bash
+# Install Istio
+./scripts/install-istio.sh
+
+# Deploy all resources
+./scripts/deploy-all.sh
+
+# Verify installation
+./scripts/verify-deployment.sh
+```
+
+### Accessing Dashboards
+
+```bash
+# Kiali (service mesh visualization)
+istioctl dashboard kiali
+
+# Prometheus (metrics collection)
+istioctl dashboard prometheus
+
+# Jaeger (distributed tracing)
+istioctl dashboard jaeger
+
+# Grafana (dashboards)
+istioctl dashboard grafana
+```
+
+### Added
+
 - Istio service mesh integration
 - mTLS between services
 - Virtual services and destination rules

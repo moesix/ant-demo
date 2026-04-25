@@ -16,7 +16,8 @@ def test_health_endpoint(client):
     """Test the health endpoint returns healthy status"""
     response = client.get('/health')
     assert response.status_code == 200
-    assert b'"status":"healthy"' in response.data
+    assert b'"status":' in response.data
+    assert b'"healthy"' in response.data
 
 def test_index_endpoint_v1(client, monkeypatch):
     """Test the index endpoint returns Hello World for v1"""

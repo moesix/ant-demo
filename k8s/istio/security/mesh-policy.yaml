@@ -1,0 +1,23 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: mesh-policy
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: mesh-policy
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: per-namespace-policy
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: per-namespace-policy
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  mtls:
+    mode: STRICT
