@@ -31,7 +31,7 @@ spec:
       containers:
       - name: webapp
         image: moesix/ant-demo:latest
-        imagePullPolicy: Always
+        imagePullPolicy: Never
         ports:
         - containerPort: 5000
         env:
@@ -117,7 +117,7 @@ spec:
       containers:
       - name: user-service
         image: moesix/ant-demo-user-service:latest
-        imagePullPolicy: Always
+        imagePullPolicy: Never
         ports:
         - containerPort: 5000
         - containerPort: 50051
@@ -202,7 +202,7 @@ spec:
       containers:
       - name: logging-service
         image: moesix/ant-demo-logging-service:latest
-        imagePullPolicy: Always
+        imagePullPolicy: Never
         ports:
         - containerPort: 5000
         - containerPort: 50052

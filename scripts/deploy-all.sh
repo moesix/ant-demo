@@ -20,6 +20,10 @@ kubectl apply -f k8s/deployment.yml
 kubectl apply -f k8s/service.yml
 kubectl apply -f k8s/storage-class.yml
 
+# Deploy PostgreSQL
+echo "=== Deploying PostgreSQL ==="
+kubectl apply -f k8s/postgres.yml
+
 # Deploy Istio resources
 echo "=== Deploying Istio resources ==="
 kubectl apply -f k8s/istio/gateway.yaml
