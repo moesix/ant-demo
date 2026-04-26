@@ -1,4 +1,9 @@
 #!/bin/bash
+set -e
+
+# Create GHCR image pull secret
+echo "=== Creating GHCR image pull secret ==="
+./scripts/create-ghcr-secret.sh
 
 # Enable automatic sidecar injection for ant-demo namespace
 echo "=== Setting up ant-demo namespace ==="
