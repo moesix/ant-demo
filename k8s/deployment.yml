@@ -85,7 +85,7 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 30
       imagePullSecrets:
-      - name: ghcr-credentials
+      - name: ghcr-creds
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -170,7 +170,7 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 30
       imagePullSecrets:
-      - name: ghcr-credentials
+      - name: ghcr-creds
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -255,4 +255,4 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 30
       imagePullSecrets:
-      - name: ghcr-credentials
+      - name: ghcr-creds

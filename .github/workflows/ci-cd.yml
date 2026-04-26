@@ -140,11 +140,32 @@ jobs:
         run: |
           pytest tests/ -v --tb=short --cov=. --cov-report=term-missing
 
+  # Setup job to handle conditional dependencies
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check_status.outputs.status }}
+    steps:
+      - name: Check if we need to run tests
+        id: check_status
+        run: |
+          if [ "${{ inputs.skip_tests }}" == "true" ]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=needs_tests" >> "$GITHUB_OUTPUT"
+          fi
+
   # 1.3.4: Build and Push to GHCR (all services)
   build-and-push:
-    needs: [dependency-scan, image-scan, test]
-    if: inputs.skip_tests == true || (needs.dependency-scan.result == 'success' && needs.image-scan.result == 'success' && needs.test.result == 'success')
+    needs: [setup, dependency-scan, image-scan, test]
     runs-on: ubuntu-latest
+    if: |
+      (inputs.skip_tests == true && needs.setup.outputs.status == 'skipped') ||
+      (inputs.skip_tests == false && 
+       needs.setup.outputs.status == 'needs_tests' &&
+       needs.dependency-scan.result == 'success' && 
+       needs.image-scan.result == 'success' && 
+       needs.test.result == 'success')
     strategy:
       matrix:
         service:
@@ -170,7 +191,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN_RW }}
 
       - name: Extract Docker metadata
         id: meta
