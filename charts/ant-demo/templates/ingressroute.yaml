@@ -1,0 +1,35 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-http
+  labels:
+    {{- include "ant-demo.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`{{ .Values.ingress.hosts[0].host }}`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: {{ include "ant-demo.fullname" . }}
+          port: {{ .Values.service.targetPort }}
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-https
+  labels:
+    {{- include "ant-demo.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.hosts[0].host }}`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: {{ include "ant-demo.fullname" . }}
+          port: {{ .Values.service.targetPort }}
+  tls:
+    certResolver: letsencrypt

@@ -16,3 +16,5 @@ k8s/
 
 # other files
 README.md
+AGENTS.md
+venv/

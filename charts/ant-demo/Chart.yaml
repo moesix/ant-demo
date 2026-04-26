@@ -1,0 +1,12 @@
+apiVersion: v2
+name: ant-demo
+description: A Kubernetes cluster application showcase with Python Flask and microservices
+type: application
+version: 0.2.0
+appVersion: "4"
+
+dependencies:
+  - name: postgresql
+    version: 12.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

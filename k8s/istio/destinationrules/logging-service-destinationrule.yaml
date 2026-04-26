@@ -1,0 +1,25 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: logging-service-destinationrule
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: logging-service-destinationrule
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  host: ant-demo-logging-service
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 10

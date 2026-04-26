@@ -1,14 +1,183 @@
-name: Build and Push to GHCR
+name: Build, Test, and Deploy to GHCR & EKS
 
-# This workflow runs on any new tag push (e.g., v1.0, v2.1.1)
+# This workflow runs on tag pushes or manual dispatch
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:  # Manual trigger
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - dev
+      skip_tests:
+        description: 'Skip tests (faster build)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  build-and-push:
+  # Phase 1.3: CI/CD Pipeline Enhancements
+  
+  # 1.3.1: Dependency Scanning
+  dependency-scan:
     runs-on: ubuntu-latest
+    if: inputs.skip_tests != true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Snyk for dependency vulnerability scanning
+        uses: snyk/actions/python@v0.3.0
+        continue-on-error: true
+        with:
+          args: --file=requirements.txt --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # 1.3.2: Image Security Scanning with Trivy (for webapp only)
+  image-scan:
+    runs-on: ubuntu-latest
+    if: inputs.skip_tests != true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ github.repository }}:${{ github.ref_name }}
+          outputs: type=docker,dest=/tmp/image.tar
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.11.2
+        with:
+          image-ref: ${{ github.repository }}:${{ github.ref_name }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # 1.3.3: Unit and Integration Tests
+  test:
+    runs-on: ubuntu-latest
+    if: inputs.skip_tests != true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: antuser
+          POSTGRES_PASSWORD: antpassword
+          POSTGRES_DB: antdemo
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov python-dotenv
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U antuser -d antdemo; then
+              echo "PostgreSQL is ready"
+              break
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Run tests with coverage
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: antdemo
+          DB_USER: antuser
+          DB_PASSWORD: antpassword
+          APP_VERSION: 3
+        run: |
+          pytest tests/ -v --tb=short --cov=. --cov-report=term-missing
+
+  # Setup job to handle conditional dependencies
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check_status.outputs.status }}
+    steps:
+      - name: Check if we need to run tests
+        id: check_status
+        run: |
+          if [ "${{ inputs.skip_tests }}" == "true" ]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=needs_tests" >> "$GITHUB_OUTPUT"
+          fi
+
+  # 1.3.4: Build and Push to GHCR (all services)
+  build-and-push:
+    needs: [setup, dependency-scan, image-scan, test]
+    runs-on: ubuntu-latest
+    if: |
+      (inputs.skip_tests == true && needs.setup.outputs.status == 'skipped') ||
+      (inputs.skip_tests == false && 
+       needs.setup.outputs.status == 'needs_tests' &&
+       needs.dependency-scan.result == 'success' && 
+       needs.image-scan.result == 'success' && 
+       needs.test.result == 'success')
+    strategy:
+      matrix:
+        service:
+          - name: ant-demo
+            context: .
+            dockerfile: Dockerfile
+          - name: ant-demo-user-service
+            context: ./user-service
+            dockerfile: Dockerfile
+          - name: ant-demo-logging-service
+            context: ./logging-service
+            dockerfile: Dockerfile
     permissions:
       contents: read
       packages: write
@@ -22,22 +191,28 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN_RW }}
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/moe6/ant-demo/${{ matrix.service.name }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ matrix.service.context }}
+          dockerfile: ${{ matrix.service.dockerfile }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ghcr.io/moe6/ant-demo/${{ matrix.service.name }}:${{ inputs.build_type }}
+            ghcr.io/moe6/ant-demo/${{ matrix.service.name }}:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64  # 1.3.5: Multi-Architecture Builds
 
+  # 1.3.6: Deploy to Kubernetes
   deploy:
     needs: build-and-push 
     runs-on: ubuntu-latest
@@ -59,4 +234,29 @@ jobs:
       - name: Deploy new image to EKS
         run: |
           kubectl set image deployment/ant-demo-deployment webapp=ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          kubectl rollout status deployment/ant-demo-deployment
+
+  # 1.3.7: Automated Rollback on Failed Deployment
+  rollback:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    if: failure()
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ant-demo-cluster --region ap-southeast-1
+
+      - name: Rollback to previous deployment
+        run: |
+          kubectl rollout undo deployment/ant-demo-deployment
           kubectl rollout status deployment/ant-demo-deployment

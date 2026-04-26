@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package logging;
+
+service LoggingService {
+    rpc CreateLog (LogRequest) returns (LogResponse);
+    rpc GetLogs (GetLogsRequest) returns (LogResponse);
+}
+
+message LogRequest {
+    string message = 1;
+}
+
+message LogResponse {
+    int32 id = 1;
+    string message = 2;
+    string created_at = 3;
+}
+
+message GetLogsRequest {
+    int32 limit = 1;
+}

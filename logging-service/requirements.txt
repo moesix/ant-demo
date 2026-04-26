@@ -1,0 +1,6 @@
+flask==3.0.0
+flask-sqlalchemy==3.0.5
+psycopg2-binary==2.9.12
+grpcio==1.80.0
+grpcio-tools==1.80.0
+protobuf==6.31.1

@@ -1,26 +1,131 @@
+version: '3.8'
 services:
   webapp:
+    image: ant-demo-webapp
     build: .
     ports:
       - "5001:5000"
     environment:
-      - APP_VERSION=3
-      # --- DB Credentials for v3 ---
+      - APP_VERSION=5
       - DB_HOST=postgres_db
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_PORT=5432
+      - DB_NAME=antdemo
+      - DB_USER=antuser
+      - DB_PASSWORD=antpassword
+      - FLASK_DEBUG=1
+    volumes:
+      - .:/app
     depends_on:
       - postgres_db
+      - user-service
+      - logging-service
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    image: ant-demo-user-service
+    build: ./user-service
+    ports:
+      - "50051:50051"
+      - "5002:5000"
+    environment:
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_NAME=antdemo
+      - DB_USER=antuser
+      - DB_PASSWORD=antpassword
+    volumes:
+      - ./user-service:/app
+    depends_on:
+      - postgres_db
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  logging-service:
+    image: ant-demo-logging-service
+    build: ./logging-service
+    ports:
+      - "50052:50052"
+      - "5003:5000"
+    environment:
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_NAME=antdemo
+      - DB_USER=antuser
+      - DB_PASSWORD=antpassword
+    volumes:
+      - ./logging-service:/app
+    depends_on:
+      - postgres_db
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Kong API Gateway
+  kong:
+    image: kong:3.9
+    ports:
+      - "8000:8000"   # Proxy
+      - "8443:8443"   # TLS
+      - "8001:8001"   # Admin API
+      - "8444:8444"   # Admin TLS
+      - "9000:9000"   # gRPC
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000, 0.0.0.0:9000 http2
+    volumes:
+      - ./kong:/kong
+    depends_on:
+      - postgres_db
+      - webapp
+      - user-service
+      - logging-service
+    healthcheck:
+      test: ["CMD-SHELL", "kong health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres_db:
-    image: postgres:16-alpine
+    image: postgres:16
+    container_name: ant-demo-postgres_db-1
+    ports:
+      - "5433:5432"
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_DB=antdemo
+      - POSTGRES_USER=antuser
+      - POSTGRES_PASSWORD=antpassword
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U antuser -d antdemo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ant-demo-pgadmin-1
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres_db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/
 
 volumes:
   postgres_data:
+  pgadmin_data:

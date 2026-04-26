@@ -1,0 +1,180 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-gateway
+  namespace: kong
+  labels:
+    app: kong
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      containers:
+        - name: kong
+          image: kong:3.9
+          ports:
+            - containerPort: 8000  # Proxy
+            - containerPort: 8443  # TLS
+            - containerPort: 8001  # Admin API
+            - containerPort: 8444  # Admin TLS
+            - containerPort: 9000  # gRPC
+          env:
+            - name: KONG_DATABASE
+              value: "postgres"
+            - name: KONG_PG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_host
+            - name: KONG_PG_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_port
+            - name: KONG_PG_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_name
+            - name: KONG_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_user
+            - name: KONG_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kong-credentials
+                  key: db_password
+            - name: KONG_DECLARATIVE_CONFIG
+              value: /kong/kong.yml
+            - name: KONG_PROXY_LISTEN
+              value: "0.0.0.0:8000, 0.0.0.0:9000 http2"
+          volumeMounts:
+            - name: kong-config
+              mountPath: /kong
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            exec:
+              command: ["kong", "health"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["kong", "health"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            exec:
+              command: ["kong", "health"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+      volumes:
+        - name: kong-config
+          configMap:
+            name: kong-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: kong
+data:
+  kong.yml: |-
+    _format_version: "3.0"
+    _transform: true
+    services:
+      - name: webapp-service
+        url: http://ant-demo-webapp.ant-demo:5000
+        tags: ["webapp", "ui"]
+      - name: user-service
+        url: grpc://ant-demo-user-service.ant-demo:50051
+        tags: ["user-service", "grpc"]
+      - name: logging-service
+        url: grpc://ant-demo-logging-service.ant-demo:50052
+        tags: ["logging-service", "grpc"]
+    routes:
+      - name: webapp-route
+        paths: ["/api/webapp"]
+        service: webapp-service
+        strip_path: true
+        tags: ["webapp"]
+      - name: user-service-grpc-route
+        paths: ["/api/users"]
+        service: user-service
+        strip_path: true
+        tags: ["user-service"]
+      - name: logging-service-grpc-route
+        paths: ["/api/logs"]
+        service: logging-service
+        strip_path: true
+        tags: ["logging-service"]
+    plugins:
+      - name: rate-limiting
+        tags: ["rate-limiting"]
+        enabled: true
+        config:
+          minute: 10
+          policy: local
+      - name: cors
+        tags: ["cors"]
+        enabled: true
+        config:
+          origins: ["*"]
+          methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+          headers: ["Content-Type", "Authorization"]
+          exposed_headers: ["X-Kong-Upstream-Latency"]
+          credentials: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-gateway
+  namespace: kong
+  labels:
+    app: kong
+spec:
+  type: LoadBalancer
+  ports:
+    - name: proxy
+      port: 80
+      targetPort: 8000
+      nodePort: 30080
+    - name: proxy-tls
+      port: 443
+      targetPort: 8443
+      nodePort: 30443
+    - name: admin
+      port: 8001
+      targetPort: 8001
+      nodePort: 30001
+    - name: grpc
+      port: 9000
+      targetPort: 9000
+      nodePort: 30900
+  selector:
+    app: kong

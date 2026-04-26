@@ -3,43 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRE Ant Demo</title>
+    <title>Ant Demo - Kubernetes Cluster Application</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="terminal-window">
-        <div class="terminal-header">
-            <span class="button red"></span>
-            <span class="button yellow"></span>
-            <span class="button green"></span>
+    <div class="background-effect"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <h1 class="logo">ant<span class="logo-accent">demo</span></h1>
+                <p class="tagline">Kubernetes Cluster Application Showcase</p>
+            </div>
+            <div class="version-badge">v{{ APP_VERSION }}</div>
         </div>
-        <div class="terminal-body">
-            <p><span class="prompt">/opt/ant-demo/</span> <span class="output">{{ command }}</span></p>
+    </header>
 
-            <pre class="output">{{ content }}</pre>
+    <main class="main-content">
+        <div class="container">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span class="status-text">System Operational</span>
+                    </div>
+                    <div class="command-info">
+                        <span class="command-prompt">/opt/ant-demo/</span>
+                        <span class="command-text">{{ command }}</span>
+                    </div>
+                </div>
 
-            {% if os_info %}
-            <pre class="output">
-CPU Usage : {{ os_info.cpu }}%
-MEM Usage : {{ os_info.mem }}%
-Disk Total: {{ os_info.disk_total }}
-Disk Used : {{ os_info.disk_used }} ({{ os_info.disk_percent }}%)
-Net Sent  : {{ os_info.net_sent }}
-Net Recv  : {{ os_info.net_recv }}
-            </pre>
+                <div class="card-body">
+                    <div class="content-section">
+                        <h2 class="section-title">Application Output</h2>
+                        <div class="content-output">
+                            {{ content }}
+                        </div>
+                    </div>
+
+                    {% if os_info %}
+                    <div class="content-section">
+                        <h2 class="section-title">System Information</h2>
+                        <div class="system-metrics">
+                            <div class="metric-card">
+                                <div class="metric-label">CPU Usage</div>
+                                <div class="metric-value">{{ os_info.cpu }}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Memory Usage</div>
+                                <div class="metric-value">{{ os_info.mem }}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Disk Usage</div>
+                                <div class="metric-value">{{ os_info.disk_percent }}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Network Sent</div>
+                                <div class="metric-value">{{ os_info.net_sent }}</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Network Received</div>
+                                <div class="metric-value">{{ os_info.net_recv }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+            {% if is_metrics %}
+            <div class="content-section">
+                <h2 class="section-title">Real-time Metrics Dashboard</h2>
+                
+                <div class="metrics-dashboard">
+                    <div class="dashboard-grid">
+                        <!-- CPU Usage -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">CPU Usage</div>
+                            <div class="metric-value" id="cpuValue">0%</div>
+                            <div class="metric-chart">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Memory Usage -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Memory Usage</div>
+                            <div class="metric-value" id="memoryValue">0%</div>
+                            <div class="metric-chart">
+                                <canvas id="memoryChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Disk Usage -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Disk Usage</div>
+                            <div class="metric-value" id="diskValue">0%</div>
+                            <div class="metric-chart">
+                                <canvas id="diskChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Network Sent -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Network Sent</div>
+                            <div class="metric-value" id="netSentValue">0 MB</div>
+                            <div class="metric-chart">
+                                <canvas id="netSentChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Network Received -->
+                        <div class="metric-card realtime">
+                            <div class="metric-label">Network Received</div>
+                            <div class="metric-value" id="netRecvValue">0 MB</div>
+                            <div class="metric-chart">
+                                <canvas id="netRecvChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Prometheus Metrics Link -->
+                <div class="prometheus-link">
+                    <a href="/metrics" class="prometheus-btn" target="_blank">View Prometheus Metrics</a>
+                </div>
+            </div>
             {% endif %}
+                </div>
 
-            {% if logs %}
-            <p class="output">Last 5 access logs:</p>
-            <ul class="log-list">
-                {% for log in logs %}
-                    <li>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} - {{ log.message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+                <div class="card-footer">
+                    <div class="build-info">
+                        <span class="build-label">Version:</span>
+                        <span class="build-value">{{ APP_VERSION }}</span>
+                    </div>
+                    <div class="k8s-info">
+                        <span class="k8s-label">Kubernetes Ready</span>
+                        <span class="k8s-icon">☸️</span>
+                    </div>
+                </div>
+            </div>
 
-            <p><span class="prompt">/opt/ant-demo/</span><span class="cursor"></span></p>
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-icon">📦</div>
+                    <div class="info-content">
+                        <h3 class="info-title">Docker Containerized</h3>
+                        <p class="info-text">Multi-stage builds with minimal base images for security and efficiency</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">⚙️</div>
+                    <div class="info-content">
+                        <h3 class="info-title">Kubernetes Deployed</h3>
+                        <p class="info-text">Production-grade manifests with health checks and resource limits</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">🚀</div>
+                    <div class="info-content">
+                        <h3 class="info-title">CI/CD Pipeline</h3>
+                        <p class="info-text">GitHub Actions with automated testing, security scanning, and deployment</p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <!-- Socket.IO and Chart.js -->
+    {% if is_metrics %}
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Socket.IO connection
+        const socket = io();
+        
+        // Metrics data buffers (keep last 50 points)
+        const maxDataPoints = 50;
+        const metricsData = {
+            cpu: { values: [], timestamps: [] },
+            memory: { values: [], timestamps: [] },
+            disk: { values: [], timestamps: [] },
+            net_sent: { values: [], timestamps: [] },
+            net_recv: { values: [], timestamps: [] }
+        };
+        
+        // Chart configurations
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { beginAtZero: true, max: 100 }
+            }
+        };
+        
+        const netChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { beginAtZero: true }
+            }
+        };
+        
+        const cpuChart = new Chart(document.getElementById('cpuChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#10b981' }] },
+            options: chartOptions
+        });
+        
+        const memoryChart = new Chart(document.getElementById('memoryChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6' }] },
+            options: chartOptions
+        });
+        
+        const diskChart = new Chart(document.getElementById('diskChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#f59e0b' }] },
+            options: chartOptions
+        });
+        
+        const netSentChart = new Chart(document.getElementById('netSentChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#8b5cf6' }] },
+            options: netChartOptions
+        });
+        
+        const netRecvChart = new Chart(document.getElementById('netRecvChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#ec4899' }] },
+            options: netChartOptions
+        });
+        
+        // Update metrics
+        function updateMetrics(data) {
+            const timestamp = new Date(data.timestamp * 1000);
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            // CPU
+            if (data.cpu !== undefined) {
+                metricsData.cpu.values.push(data.cpu);
+                metricsData.cpu.timestamps.push(timeStr);
+                if (metricsData.cpu.values.length > maxDataPoints) {
+                    metricsData.cpu.values.shift();
+                    metricsData.cpu.timestamps.shift();
+                }
+                document.getElementById('cpuValue').textContent = data.cpu.toFixed(1) + '%';
+                cpuChart.data.labels = metricsData.cpu.timestamps;
+                cpuChart.data.datasets[0].data = metricsData.cpu.values;
+                cpuChart.update('none');
+            }
+            
+            // Memory
+            if (data.memory !== undefined) {
+                metricsData.memory.values.push(data.memory);
+                metricsData.memory.timestamps.push(timeStr);
+                if (metricsData.memory.values.length > maxDataPoints) {
+                    metricsData.memory.values.shift();
+                    metricsData.memory.timestamps.shift();
+                }
+                document.getElementById('memoryValue').textContent = data.memory.toFixed(1) + '%';
+                memoryChart.data.labels = metricsData.memory.timestamps;
+                memoryChart.data.datasets[0].data = metricsData.memory.values;
+                memoryChart.update('none');
+            }
+            
+            // Disk
+            if (data.disk !== undefined) {
+                metricsData.disk.values.push(data.disk);
+                metricsData.disk.timestamps.push(timeStr);
+                if (metricsData.disk.values.length > maxDataPoints) {
+                    metricsData.disk.values.shift();
+                    metricsData.disk.timestamps.shift();
+                }
+                document.getElementById('diskValue').textContent = data.disk.toFixed(1) + '%';
+                diskChart.data.labels = metricsData.disk.timestamps;
+                diskChart.data.datasets[0].data = metricsData.disk.values;
+                diskChart.update('none');
+            }
+            
+            // Network Sent
+            if (data.net_sent !== undefined) {
+                const mbSent = (data.net_sent / (1024 * 1024)).toFixed(2);
+                metricsData.net_sent.values.push(data.net_sent);
+                metricsData.net_sent.timestamps.push(timeStr);
+                if (metricsData.net_sent.values.length > maxDataPoints) {
+                    metricsData.net_sent.values.shift();
+                    metricsData.net_sent.timestamps.shift();
+                }
+                document.getElementById('netSentValue').textContent = mbSent + ' MB';
+                netSentChart.data.labels = metricsData.net_sent.timestamps;
+                netSentChart.data.datasets[0].data = metricsData.net_sent.values;
+                netSentChart.update('none');
+            }
+            
+            // Network Received
+            if (data.net_recv !== undefined) {
+                const mbRecv = (data.net_recv / (1024 * 1024)).toFixed(2);
+                metricsData.net_recv.values.push(data.net_recv);
+                metricsData.net_recv.timestamps.push(timeStr);
+                if (metricsData.net_recv.values.length > maxDataPoints) {
+                    metricsData.net_recv.values.shift();
+                    metricsData.net_recv.timestamps.shift();
+                }
+                document.getElementById('netRecvValue').textContent = mbRecv + ' MB';
+                netRecvChart.data.labels = metricsData.net_recv.timestamps;
+                netRecvChart.data.datasets[0].data = metricsData.net_recv.values;
+                netRecvChart.update('none');
+            }
+        }
+        
+        // Socket.IO event handlers
+        socket.on('connection_established', (data) => {
+            console.log('Connected to metrics stream:', data);
+        });
+        
+        socket.on('metric_update', (data) => {
+            updateMetrics(data);
+        });
+        
+        // Request initial data
+        socket.emit('metric_request', { type: 'all' });
+    </script>
+    {% endif %}
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">antdemo</div>
+                <p class="footer-tagline">Kubernetes Cluster Application Showcase</p>
+            </div>
+            <div class="footer-section">
+                <div class="footer-links">
+                    <a href="/health" class="footer-link">Health Check</a>
+                    <a href="#" class="footer-link">Documentation</a>
+                    <a href="#" class="footer-link">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
