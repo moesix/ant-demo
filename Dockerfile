@@ -16,9 +16,6 @@ COPY --from=builder /usr/src/app/wheels /wheels
 
 RUN pip install --no-cache /wheels/*
 
-# Install Playwright browsers
-RUN playwright install chromium
-
 COPY . .
 
 USER appuser

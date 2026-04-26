@@ -32,6 +32,10 @@ class LogEntry(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+@app.route('/api/logs/')
+def api_logs():
+    return "Logging Service API"
+
 @app.route('/')
 def index():
     return "Logging Service"
@@ -82,9 +86,22 @@ def serve():
 
 if __name__ == '__main__':
     import threading
+    import time
     
-    with app.app_context():
-        db.create_all()
+    # Retry DB connection up to 30 times
+    for attempt in range(30):
+        try:
+            with app.app_context():
+                db.create_all()
+            print("Database tables created/verified")
+            break
+        except Exception as e:
+            if attempt < 29:
+                print(f"DB not ready (attempt {attempt+1}/30): {e}")
+                time.sleep(2)
+            else:
+                print(f"Failed to connect to DB after 30 attempts: {e}")
+                raise
     
     def run_flask():
         app.run(host='0.0.0.0', port=5000)

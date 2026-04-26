@@ -90,6 +90,10 @@ def get_app_version():
     """Get application version from environment variable dynamically"""
     return os.environ.get('APP_VERSION', '1')
 
+@app.route('/api/webapp/')
+def api_webapp():
+    return "Webapp Service"
+
 @app.route('/health')
 def health():
     """Health check endpoint for Kubernetes probes"""

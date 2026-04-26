@@ -37,6 +37,10 @@ class User(db.Model):
             'updated_at': self.updated_at.isoformat()
         }
 
+@app.route('/api/users/')
+def api_users():
+    return "User Service API"
+
 @app.route('/')
 def index():
     return "User Service"
@@ -155,9 +159,22 @@ def serve():
 
 if __name__ == '__main__':
     import threading
+    import time
     
-    with app.app_context():
-        db.create_all()
+    # Retry DB connection up to 30 times
+    for attempt in range(30):
+        try:
+            with app.app_context():
+                db.create_all()
+            print("Database tables created/verified")
+            break
+        except Exception as e:
+            if attempt < 29:
+                print(f"DB not ready (attempt {attempt+1}/30): {e}")
+                time.sleep(2)
+            else:
+                print(f"Failed to connect to DB after 30 attempts: {e}")
+                raise
     
     from werkzeug.serving import make_server
     
