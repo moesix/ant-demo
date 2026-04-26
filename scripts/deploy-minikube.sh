@@ -54,7 +54,7 @@ kubectl apply -f k8s/postgres.yml
 # Step 6: Wait for PostgreSQL to be ready
 echo -e "\n=== Step 6: Waiting for PostgreSQL to be ready ==="
 for i in {1..30}; do
-  if kubectl get pods -n ant-demo -l app=postgres-db 2>/dev/null | grep -E '1/1.*Running' >/dev/null; then
+  if kubectl get pods -n ant-demo -l app=postgres-db 2>/dev/null | grep -E '2/2.*Running' >/dev/null; then
     echo "✓ PostgreSQL is ready"
     break
   fi
@@ -63,7 +63,7 @@ for i in {1..30}; do
 done
 
 # Check if PostgreSQL is actually ready
-if ! kubectl get pods -n ant-demo -l app=postgres-db 2>/dev/null | grep -E '1/1.*Running' >/dev/null; then
+if ! kubectl get pods -n ant-demo -l app=postgres-db 2>/dev/null | grep -E '2/2.*Running' >/dev/null; then
   echo "Error: PostgreSQL not ready after 60 seconds"
   kubectl get pods -n ant-demo -l app=postgres-db
   exit 1
@@ -76,9 +76,8 @@ kubectl apply -f k8s/service.yml
 
 # Step 8: Deploy Istio resources
 echo -e "\n=== Step 8: Deploying Istio resources ==="
+# Skip prometheus and kiali addons - they're already installed via Istio demo profile
 kubectl apply -f k8s/istio/observability/jaeger-addon.yaml
-kubectl apply -f k8s/istio/observability/prometheus-addon.yaml
-kubectl apply -f k8s/istio/observability/kiali-addon.yaml
 kubectl apply -f k8s/istio/security/
 kubectl apply -f k8s/istio/destinationrules/
 kubectl apply -f k8s/istio/virtualservices/
