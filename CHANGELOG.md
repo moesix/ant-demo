@@ -4,7 +4,91 @@ All notable changes to this project will be documented in this file, organized b
 
 ---
 
-## [Phase 2.1] - Current Release (2026-04-25)
+## [Phase 2.3] - Current Release (2026-04-27)
+
+### Added
+
+- **CI/CD Pipeline (GitHub Actions)**:
+  - Multi-service build matrix (webapp, user-service, logging-service)
+  - Security scanning with Trivy (SARIF upload to GitHub Security tab)
+  - Automated image push to GHCR with versioned tags
+  - Conditional test execution (`skip_tests` flag)
+  - Multi-architecture build preparation (linux/amd64, arm64 TBD)
+
+- **Kubernetes Manifests**:
+  - Production-grade deployments with health probes (liveness, readiness, startup)
+  - Resource limits and requests for all services
+  - Rolling update strategy with max surge/unavailable
+  - Istio sidecar injection annotations
+
+- **Database**:
+  - PostgreSQL 16 deployment with ConfigMap init scripts
+  - `logs` and `users` tables via init scripts
+  - Secrets management for database credentials
+
+- **API Routes**:
+  - `/api/webapp/` route added to webapp service
+  - `/api/users/` route added to user-service
+  - `/api/logs/` route added to logging-service
+
+- **DB Retry Logic**:
+  - Retry `db.create_all()` on startup (30 attempts, 2s interval)
+  - Graceful handling of PostgreSQL startup race conditions
+
+### Changed
+
+- **Dockerfile**: Removed Playwright from production image (saves ~400MB)
+- **requirements.txt**: Removed playwright, pytest-playwright (test-only deps)
+- **Resource requests**: App containers 100m→50m CPU, 128Mi→64Mi memory
+- **Resource limits**: 500m→200m CPU, 512Mi→256Mi memory
+- **Postgres resources**: 100m→50m CPU, 256Mi→128Mi memory
+- **Kong → Istio**: Migrated from Kong API Gateway to Istio service mesh
+- **Deployment scripts**: Updated for proper minikube workflow
+
+### Fixed
+
+- **CI/CD auth**: Switched from GHCR_TOKEN_RW to GITHUB_TOKEN with `packages: write`
+- **Buildx input**: Fixed `dockerfile`→`file` for docker/build-push-action@v7
+- **Test conditional**: Simplified build-and-push condition to avoid dependency on skipped jobs
+- **Dockerfile path**: Removed explicit `file` param (defaults to `{context}/Dockerfile`)
+- **ImagePullBackOff**: Fixed ghcr-creds username (moe6→moesix)
+- **Readiness checks**: Updated from `1/1` to `2/2` for Istio sidecar containers
+- **Verification script**: Uses port-forward instead of `kubectl exec` (slim images lack curl)
+- **VirtualService routing**: Added root `/` and `/health` routes to webapp VS
+
+### Removed
+
+- Playwright browser binary from production Docker image
+- Snyk dependency scanning (no SNYK_TOKEN available)
+- Kong API Gateway configuration (replaced by Istio)
+
+---
+
+## [Phase 2.2] - Completed (2026-04-25)
+
+### Added
+
+- **Real-time Metrics Dashboard**:
+  - WebSocket server using Flask-SocketIO (eventlet async)
+  - Chart.js dashboard with real-time charts (50-point buffer)
+  - Metrics: CPU, memory, disk, network (sent/recv)
+  - Prometheus integration with custom collectors
+  - Metrics endpoint at `/api/webapp/metrics`
+
+### Changed
+
+- **app.py**: Integrated WebSocket and Prometheus into webapp
+- **requirements.txt**: Added flask-socketio, python-socketio, eventlet, prometheus_client
+- **templates/index.html**: Added Chart.js dashboard with real-time updates
+- **kong/kong.yml**: Added WebSocket route for /socket.io
+
+### Fixed
+
+- Kong route protocol validation (ws/wss not valid for HTTP routes)
+
+---
+
+## [Phase 2.1] - Completed (2026-04-25)
 
 ### Added
 
@@ -54,139 +138,6 @@ All notable changes to this project will be documented in this file, organized b
 - Traefik IngressRoute configurations
 
 ---
-
-## [Phase 2.2] - Completed (2026-04-25)
-
-### Added
-
-- **Real-time Metrics Dashboard**:
-  - WebSocket server using Flask-SocketIO (eventlet async)
-  - Chart.js dashboard with real-time charts (50-point buffer)
-  - Metrics: CPU, memory, disk, network (sent/recv)
-  - Prometheus integration with custom collectors
-  - Metrics endpoint at `/api/webapp/metrics`
-
-### Changed
-
-- **app.py**: Integrated WebSocket and Prometheus into webapp
-- **requirements.txt**: Added flask-socketio, python-socketio, eventlet, prometheus_client
-- **templates/index.html**: Added Chart.js dashboard with real-time updates
-- **kong/kong.yml**: Added WebSocket route for /socket.io
-
-### Fixed
-
-- Kong route protocol validation (ws/wss not valid for HTTP routes)
-
----
-
-## [Phase 2.3] - Planned
-
-### Added
-
-- **Istio Service Mesh**: Complete service mesh implementation with:
-  - Automatic sidecar injection
-  - Mutual TLS (mTLS) between services
-  - Traffic management with virtual services and destination rules
-  - Fault injection for testing resilience
-  - Circuit breaker and retry configurations
-  - Outlier detection
-
-- **Observability Stack**:
-  - Kiali for service mesh visualization
-  - Prometheus for metrics collection
-  - Jaeger for distributed tracing
-  - Grafana dashboards for monitoring
-
-- **Security Features**:
-  - PeerAuthentication for strict mTLS mode
-  - AuthorizationPolicies for service-to-service access control
-  - TLS termination at mesh boundary
-
-- **Traffic Management**:
-  - Load balancing (ROUND_ROBIN, least connections)
-  - Timeouts and retries
-  - Canary deployment support with weighted routing
-  - Fault injection (delays, aborts)
-
-- **Kubernetes Resources**:
-  - Istio control plane installation
-  - Virtual services for each application endpoint
-  - Destination rules with subsets
-  - PeerAuthentication and AuthorizationPolicy configurations
-  - Ingress gateway with TLS termination
-  - Service mesh policies for traffic management
-
-### Changed
-
-- **Application Deployment**:
-  - Updated deployment.yaml with Istio annotations
-  - Added prometheus.io scraping annotations
-  - Changed from direct service-to-service to mesh communication
-
-- **Kong Configuration**:
-  - Updated service URLs to route through Istio ingress gateway
-  - Changed from `http://webapp:5000` to `http://istio-ingressgateway.istio-system.svc.cluster.local:80`
-  - Kept rate limiting and CORS policies intact
-
-### New Files Created
-
-**Kubernetes Manifests:**
-- `k8s/istio/namespace.yaml`: Namespace with istio-injection label
-- `k8s/istio/gateway.yaml`: Istio ingress gateway configuration
-- `k8s/istio/virtualservices/*.yaml`: Route definitions for each service
-- `k8s/istio/destinationrules/*.yaml`: Load balancing and fault tolerance configs
-- `k8s/istio/security/mesh-policy.yaml`: mTLS policy
-- `k8s/istio/security/auth-policies/*.yaml`: Authorization policies
-- `k8s/istio/observability/*.yaml`: Prometheus, Kiali, Jaeger addons
-
-**Documentation:**
-- `documentation/ISTIO-SETUP.md`: Complete installation and usage guide
-
-**Scripts:**
-- `scripts/install-istio.sh`: Istio control plane installation
-- `scripts/deploy-all.sh`: Full application deployment script
-- `scripts/verify-deployment.sh`: Deployment verification
-- `scripts/cleanup.sh`: Complete teardown
-
-### Deployment Instructions
-
-```bash
-# Install Istio
-./scripts/install-istio.sh
-
-# Deploy all resources
-./scripts/deploy-all.sh
-
-# Verify installation
-./scripts/verify-deployment.sh
-```
-
-### Accessing Dashboards
-
-```bash
-# Kiali (service mesh visualization)
-istioctl dashboard kiali
-
-# Prometheus (metrics collection)
-istioctl dashboard prometheus
-
-# Jaeger (distributed tracing)
-istioctl dashboard jaeger
-
-# Grafana (dashboards)
-istioctl dashboard grafana
-```
-
-### Added
-
-- Istio service mesh integration
-- mTLS between services
-- Virtual services and destination rules
-- Distributed tracing with Jaeger
-
----
-
-## [Phase 2.4] - Planned
 
 ### Added
 
