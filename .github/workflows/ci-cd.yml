@@ -160,11 +160,8 @@ jobs:
     needs: [setup]
     runs-on: ubuntu-latest
     if: |
-      (inputs.skip_tests == true && needs.setup.outputs.status == 'skipped') ||
-      (inputs.skip_tests == false && 
-       needs.setup.outputs.status == 'needs_tests' &&
-       needs.image-scan.result == 'success' && 
-       needs.test.result == 'success')
+      inputs.skip_tests == true ||
+      (needs.image-scan.result == 'success' && needs.test.result == 'success')
     strategy:
       matrix:
         service:
