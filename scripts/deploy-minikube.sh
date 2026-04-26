@@ -34,7 +34,7 @@ kubectl label namespace ant-demo istio-injection=enabled --overwrite
 echo -e "\n=== Step 3: Creating ghcr-creds secret ==="
 kubectl create secret docker-registry ghcr-creds \
   --docker-server=ghcr.io \
-  --docker-username=moe6 \
+  --docker-username=moesix \
   --docker-password="$GHCR_TOKEN_RW" \
   --namespace=ant-demo \
   --dry-run=client -o yaml | kubectl apply -f -
@@ -87,7 +87,7 @@ kubectl apply -f k8s/istio/gateway.yaml
 echo -e "\n=== Step 9: Waiting for all services to be ready ==="
 echo "Checking webapp..."
 for i in {1..60}; do
-  if kubectl get pods -n ant-demo -l app=ant-demo-webapp 2>/dev/null | grep -E '1/1.*Running' >/dev/null; then
+  if kubectl get pods -n ant-demo -l app=ant-demo-webapp 2>/dev/null | grep -E '2/2.*Running' >/dev/null; then
     echo "✓ Webapp is ready"
     break
   fi
@@ -97,7 +97,7 @@ done
 
 echo "Checking user-service..."
 for i in {1..60}; do
-  if kubectl get pods -n ant-demo -l app=ant-demo-user-service 2>/dev/null | grep -E '1/1.*Running' >/dev/null; then
+  if kubectl get pods -n ant-demo -l app=ant-demo-user-service 2>/dev/null | grep -E '2/2.*Running' >/dev/null; then
     echo "✓ User-service is ready"
     break
   fi
@@ -107,7 +107,7 @@ done
 
 echo "Checking logging-service..."
 for i in {1..60}; do
-  if kubectl get pods -n ant-demo -l app=ant-demo-logging-service 2>/dev/null | grep -E '1/1.*Running' >/dev/null; then
+  if kubectl get pods -n ant-demo -l app=ant-demo-logging-service 2>/dev/null | grep -E '2/2.*Running' >/dev/null; then
     echo "✓ Logging-service is ready"
     break
   fi

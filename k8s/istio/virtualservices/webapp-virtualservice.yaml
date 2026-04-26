@@ -29,3 +29,13 @@ spec:
         fixedDelay: 500ms
         percentage:
           value: 10
+  - match:
+    - uri:
+        exact: /
+    - uri:
+        prefix: /health
+    route:
+    - destination:
+        host: ant-demo-webapp
+        port:
+          number: 5000
