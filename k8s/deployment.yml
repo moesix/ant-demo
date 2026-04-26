@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
       - name: webapp
-        image: ghcr.io/moe6/ant-demo/ant-demo:latest
+        image: ghcr.io/moesix/ant-demo/ant-demo:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
@@ -116,7 +116,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: ghcr.io/moe6/ant-demo/ant-demo-user-service:latest
+        image: ghcr.io/moesix/ant-demo/ant-demo-user-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
@@ -201,7 +201,7 @@ spec:
     spec:
       containers:
       - name: logging-service
-        image: ghcr.io/moe6/ant-demo/ant-demo-logging-service:latest
+        image: ghcr.io/moesix/ant-demo/ant-demo-logging-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000

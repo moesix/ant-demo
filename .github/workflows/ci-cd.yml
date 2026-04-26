@@ -196,7 +196,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/moe6/ant-demo/${{ matrix.service.name }}
+          images: ghcr.io/${{ github.repository_owner }}/ant-demo/${{ matrix.service.name }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -206,8 +206,8 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ghcr.io/moe6/ant-demo/${{ matrix.service.name }}:${{ inputs.build_type }}
-            ghcr.io/moe6/ant-demo/${{ matrix.service.name }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/ant-demo/${{ matrix.service.name }}:${{ inputs.build_type }}
+            ghcr.io/${{ github.repository_owner }}/ant-demo/${{ matrix.service.name }}:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64  # 1.3.5: Multi-Architecture Builds
 
