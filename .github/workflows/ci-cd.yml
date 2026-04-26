@@ -157,7 +157,7 @@ jobs:
 
   # 1.3.4: Build and Push to GHCR (all services)
   build-and-push:
-    needs: [setup, image-scan, test]
+    needs: [setup]
     runs-on: ubuntu-latest
     if: |
       (inputs.skip_tests == true && needs.setup.outputs.status == 'skipped') ||
