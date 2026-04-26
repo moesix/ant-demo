@@ -208,7 +208,6 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.service.context }}
-          file: ${{ matrix.service.dockerfile }}
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
