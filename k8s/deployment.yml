@@ -1,35 +1,258 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ant-demo-deployment
+  name: ant-demo-webapp
+  namespace: ant-demo
+  labels:
+    app: ant-demo-webapp
 spec:
-  replicas: 1
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
-      app: ant-demo
+      app: ant-demo-webapp
   template:
     metadata:
       labels:
-        app: ant-demo
+        app: ant-demo-webapp
+        version: "5"
+      annotations:
+        sidecar.istio.io/inject: "true"
+        traffic.sidecar.istio.io/excludeInboundPorts: ""
+        traffic.sidecar.istio.io/excludeOutboundPorts: ""
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/api/webapp/metrics"
     spec:
-      imagePullSecrets:
-      - name: ghcr-creds
       containers:
       - name: webapp
-        image: ghcr.io/moesix/ant-demo:v3
+        image: ghcr.io/moe6/ant-demo/ant-demo:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
         - name: APP_VERSION
-          value: "3"
+          value: "5"
         - name: DB_HOST
-          value: "my-postgres-release-postgresql"
+          value: "postgres-db"
+        - name: DB_PORT
+          value: "5432"
         - name: DB_NAME
           value: "antdemo"
         - name: DB_USER
-          value: "antuser"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: user
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: postgres-app-creds
+              name: postgres-credentials
               key: password
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 30
+      imagePullSecrets:
+      - name: ghcr-creds
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ant-demo-user-service
+  namespace: ant-demo
+  labels:
+    app: ant-demo-user-service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ant-demo-user-service
+  template:
+    metadata:
+      labels:
+        app: ant-demo-user-service
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/health"
+    spec:
+      containers:
+      - name: user-service
+        image: ghcr.io/moe6/ant-demo/ant-demo-user-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        - containerPort: 50051
+        env:
+        - name: DB_HOST
+          value: "postgres-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "antdemo"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 30
+      imagePullSecrets:
+      - name: ghcr-creds
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ant-demo-logging-service
+  namespace: ant-demo
+  labels:
+    app: ant-demo-logging-service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ant-demo-logging-service
+  template:
+    metadata:
+      labels:
+        app: ant-demo-logging-service
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/health"
+    spec:
+      containers:
+      - name: logging-service
+        image: ghcr.io/moe6/ant-demo/ant-demo-logging-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        - containerPort: 50052
+        env:
+        - name: DB_HOST
+          value: "postgres-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "antdemo"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 30
+      imagePullSecrets:
+      - name: ghcr-creds

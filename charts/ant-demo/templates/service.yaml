@@ -13,3 +13,47 @@ spec:
       name: http
   selector:
     {{- include "ant-demo.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-user-service
+  labels:
+    {{- include "ant-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: user-service
+spec:
+  type: {{ .Values.userService.service.type }}
+  ports:
+    - port: {{ .Values.userService.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.userService.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+  selector:
+    {{- include "ant-demo.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: user-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ant-demo.fullname" . }}-logging-service
+  labels:
+    {{- include "ant-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logging-service
+spec:
+  type: {{ .Values.loggingService.service.type }}
+  ports:
+    - port: {{ .Values.loggingService.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.loggingService.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+  selector:
+    {{- include "ant-demo.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: logging-service

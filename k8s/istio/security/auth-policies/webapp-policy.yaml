@@ -1,0 +1,25 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: webapp-policy
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: webapp-policy
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  selector:
+    matchLabels:
+      app: ant-demo-webapp
+  rules:
+  - from:
+    - source:
+        principals:
+        - "*"
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/api/webapp/*"]
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health"]

@@ -1,0 +1,25 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: logging-service-policy
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: logging-service-policy
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  selector:
+    matchLabels:
+      app: ant-demo-logging-service
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/ant-demo/sa/default"
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/api/logs/*"]
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/"]

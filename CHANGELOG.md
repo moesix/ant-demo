@@ -1,70 +1,281 @@
 # CHANGELOG
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file, organized by application phase following [k8s-plan.md](k8s-plan.md).
 
-## [Unreleased] - 2024-04-24
+---
+
+## [Phase 2.1] - Current Release (2026-04-25)
 
 ### Added
-- Comprehensive test suite including unit, integration, and end-to-end tests
-- New tests: test_app.py, test_database.py, test_database_integration.py, test_e2e.py
-- Flask-SQLAlchemy integration for database operations
-- Flask-Migrate for database migration management
-- PostgreSQL table creation check in app.py to ensure access_logs table exists
-- venv/ directory to .dockerignore for optimized Docker builds
-- Playwright browsers installation in Dockerfile
-- requirements.txt updates with pytest, playwright, and coverage dependencies
-- Detailed walkthrough documentation in documentation/walkthrough.md
+
+- **Kong API Gateway**: HTTP routing for all microservices
+  - Declarative configuration (`kong/kong.yml`)
+  - Admin API on port 8001
+  - HTTP proxy on port 8000
+  - gRPC proxy on port 9000
+- **User Service**: Microservice for user management
+  - gRPC server on port 50051
+  - Flask HTTP endpoints on port 5000
+  - PostgreSQL-backed data storage
+- **Logging Service**: Microservice for access logging
+  - gRPC server on port 50052
+  - Flask HTTP endpoints on port 5000
+  - PostgreSQL-backed data storage
+- **Protocol buffer definitions**:
+  - `user-service.proto` with CRUD operations
+  - `logging-service.proto` with log operations
+- **Kong Gateway API resources**:
+  - `k8s/kong/gatewayclass.yaml`
+  - `k8s/kong/gateway.yaml`
+  - `k8s/kong/kong-routes.yaml`
+- **Database initialization** (`scripts/init-db.sh`)
 
 ### Changed
-- Updated README.md with test suite and migration information
-- Modified database management section in README to use Flask-Migrate commands
-- Changed db connection handling from psycopg2.pool to Flask-SQLAlchemy
-- Enhanced health endpoint in app.py to use SQLAlchemy's text() function
+
+- **Webapp**: Now pure UI service (removed gRPC proxy logic)
+- **Docker Compose architecture**:
+  - Services: webapp, user-service, logging-service, kong, postgres_db
+  - Ports exposed for direct access and gateway routing
+- **Kong configuration**: DB-less mode with declarative config
+- **Kong routes**:
+  - `/api/webapp/*` → webapp:5000
+  - `/api/users/*` → user-service:5000
+  - `/api/logs/*` → logging-service:5000
+- **Health endpoints**: Service-specific status reporting
 
 ### Fixed
-- Failing test_application_rendering_and_behavior due to missing access_logs table
-- Database connection issues in health endpoint
 
-## [Unreleased] - 2024-04-23
-
-### Added
-- New Isonomy-inspired dark theme with glassmorphism effects
-- Modern typography using Inter and JetBrains Mono fonts
-- Responsive metric cards for system information display
-- Info cards highlighting key features (Docker, Kubernetes, CI/CD)
-- Animated elements (status dot pulsing, Kubernetes logo rotation)
-- Comprehensive design system with CSS variables
-- Helm chart with Traefik ingress controller support
-- Health check endpoint (/health) with version and database status
-- Kubernetes health probes (liveness, readiness, startup)
-- Resource limits and requests configuration
-- Pod security context and container security context
-- Topology spread constraints for high availability
-- Pod Disruption Budget for availability guarantees
-- Horizontal Pod Autoscaler (HPA) with CPU/memory metrics
-- Traefik IngressRoute with TLS and ACME support
-- Middleware configurations (compression, rate limiting, redirect)
-- PostgreSQL StatefulSet configuration in Helm chart
-- Database initialization scripts (scripts/db.sh)
-- Docker Compose health checks for both webapp and PostgreSQL
-- Connection pooling for PostgreSQL using psycopg2.pool
-- Database backup script (scripts/backup.sh)
-- Wait-for-database script (scripts/wait-for-db.sh)
-
-### Changed
-- Complete redesign of the HTML template (templates/index.html)
-- New CSS file with Isonomy design aesthetics (static/style.css)
-- Updated Flask application to pass APP_VERSION to template
-- Enhanced log display with timestamps and improved styling
-- Added version badge and Kubernetes ready indicator
-- Updated Docker Compose with health check configurations
-- Updated values.yaml in Helm chart with PostgreSQL health check settings
-- Enhanced app.py with connection pooling and health check improvements
+- Kong gRPC routing conflicts resolved (HTTP-only routes)
+- Database connection handling for microservices
 
 ### Removed
-- Old terminal-style interface with green prompt and cursor animation
-- Legacy color scheme and typography
+
+- gRPC inter-service communication via Flask proxy
+- Traefik IngressRoute configurations
+
+---
+
+## [Phase 2.2] - Completed (2026-04-25)
+
+### Added
+
+- **Real-time Metrics Dashboard**:
+  - WebSocket server using Flask-SocketIO (eventlet async)
+  - Chart.js dashboard with real-time charts (50-point buffer)
+  - Metrics: CPU, memory, disk, network (sent/recv)
+  - Prometheus integration with custom collectors
+  - Metrics endpoint at `/api/webapp/metrics`
+
+### Changed
+
+- **app.py**: Integrated WebSocket and Prometheus into webapp
+- **requirements.txt**: Added flask-socketio, python-socketio, eventlet, prometheus_client
+- **templates/index.html**: Added Chart.js dashboard with real-time updates
+- **kong/kong.yml**: Added WebSocket route for /socket.io
 
 ### Fixed
-- Improved mobile responsiveness with breakpoints at 768px
-- Enhanced accessibility through semantic HTML structure
+
+- Kong route protocol validation (ws/wss not valid for HTTP routes)
+
+---
+
+## [Phase 2.3] - Planned
+
+### Added
+
+- **Istio Service Mesh**: Complete service mesh implementation with:
+  - Automatic sidecar injection
+  - Mutual TLS (mTLS) between services
+  - Traffic management with virtual services and destination rules
+  - Fault injection for testing resilience
+  - Circuit breaker and retry configurations
+  - Outlier detection
+
+- **Observability Stack**:
+  - Kiali for service mesh visualization
+  - Prometheus for metrics collection
+  - Jaeger for distributed tracing
+  - Grafana dashboards for monitoring
+
+- **Security Features**:
+  - PeerAuthentication for strict mTLS mode
+  - AuthorizationPolicies for service-to-service access control
+  - TLS termination at mesh boundary
+
+- **Traffic Management**:
+  - Load balancing (ROUND_ROBIN, least connections)
+  - Timeouts and retries
+  - Canary deployment support with weighted routing
+  - Fault injection (delays, aborts)
+
+- **Kubernetes Resources**:
+  - Istio control plane installation
+  - Virtual services for each application endpoint
+  - Destination rules with subsets
+  - PeerAuthentication and AuthorizationPolicy configurations
+  - Ingress gateway with TLS termination
+  - Service mesh policies for traffic management
+
+### Changed
+
+- **Application Deployment**:
+  - Updated deployment.yaml with Istio annotations
+  - Added prometheus.io scraping annotations
+  - Changed from direct service-to-service to mesh communication
+
+- **Kong Configuration**:
+  - Updated service URLs to route through Istio ingress gateway
+  - Changed from `http://webapp:5000` to `http://istio-ingressgateway.istio-system.svc.cluster.local:80`
+  - Kept rate limiting and CORS policies intact
+
+### New Files Created
+
+**Kubernetes Manifests:**
+- `k8s/istio/namespace.yaml`: Namespace with istio-injection label
+- `k8s/istio/gateway.yaml`: Istio ingress gateway configuration
+- `k8s/istio/virtualservices/*.yaml`: Route definitions for each service
+- `k8s/istio/destinationrules/*.yaml`: Load balancing and fault tolerance configs
+- `k8s/istio/security/mesh-policy.yaml`: mTLS policy
+- `k8s/istio/security/auth-policies/*.yaml`: Authorization policies
+- `k8s/istio/observability/*.yaml`: Prometheus, Kiali, Jaeger addons
+
+**Documentation:**
+- `documentation/ISTIO-SETUP.md`: Complete installation and usage guide
+
+**Scripts:**
+- `scripts/install-istio.sh`: Istio control plane installation
+- `scripts/deploy-all.sh`: Full application deployment script
+- `scripts/verify-deployment.sh`: Deployment verification
+- `scripts/cleanup.sh`: Complete teardown
+
+### Deployment Instructions
+
+```bash
+# Install Istio
+./scripts/install-istio.sh
+
+# Deploy all resources
+./scripts/deploy-all.sh
+
+# Verify installation
+./scripts/verify-deployment.sh
+```
+
+### Accessing Dashboards
+
+```bash
+# Kiali (service mesh visualization)
+istioctl dashboard kiali
+
+# Prometheus (metrics collection)
+istioctl dashboard prometheus
+
+# Jaeger (distributed tracing)
+istioctl dashboard jaeger
+
+# Grafana (dashboards)
+istioctl dashboard grafana
+```
+
+### Added
+
+- Istio service mesh integration
+- mTLS between services
+- Virtual services and destination rules
+- Distributed tracing with Jaeger
+
+---
+
+## [Phase 2.4] - Planned
+
+### Added
+
+- RabbitMQ message queue
+- Message producer in Flask app
+- Separate worker service
+- Dead letter queue implementation
+
+---
+
+## [Phase 1] - v3 (2024-04-24)
+
+### Added
+
+- Comprehensive test suite:
+  - Unit tests (`tests/test_app.py`, `tests/test_database.py`)
+  - Integration tests (`tests/test_database_integration.py`)
+  - E2E tests (`tests/test_e2e.py`)
+- Flask-SQLAlchemy integration for database operations
+- Flask-Migrate for database migration management
+- PostgreSQL `access_logs` table
+- Playwright for E2E testing
+- Coverage reports with pytest-cov
+- Documentation walkthrough (`documentation/walkthrough.md`)
+
+### Changed
+
+- Database connection: psycopg2.pool → Flask-SQLAlchemy
+- Enhanced health endpoint with SQLAlchemy `text()` function
+- Docker Compose with health check configurations
+
+### Fixed
+
+- Missing `access_logs` table causing test failures
+- Database connection issues in health endpoint
+
+---
+
+## [Phase 1] - v2 (2024-04-23)
+
+### Added
+
+- **Version 2 - System Information**:
+  - CPU usage display
+  - Memory usage display
+  - Disk usage display
+  - Network information display
+- Isonomy-inspired dark theme with glassmorphism
+- Modern typography (Inter, JetBrains Mono)
+- Responsive metric cards
+- Animated elements (pulsing status dot, Kubernetes logo)
+- Helm chart with Traefik ingress controller
+- Health check endpoint with version and database status
+- Kubernetes health probes (liveness, readiness, startup)
+- Resource limits and requests
+- Pod security context
+- Topology spread constraints
+- Pod Disruption Budget
+- Horizontal Pod Autoscaler (HPA)
+- Traefik IngressRoute with TLS
+- Middleware (compression, rate limiting)
+- PostgreSQL StatefulSet
+- Database scripts (`scripts/db.sh`, `scripts/backup.sh`, `scripts/wait-for-db.sh`)
+
+### Changed
+
+- Complete HTML template redesign
+- New CSS design system
+- Enhanced log display with timestamps
+
+### Removed
+
+- Old terminal-style interface
+- Legacy color scheme
+
+### Fixed
+
+- Mobile responsiveness at 768px breakpoints
+- Semantic HTML accessibility
+
+---
+
+## [Phase 1] - v1 (Initial)
+
+### Added
+
+- Flask web application
+- Version 1 ("Hello World")
+- Docker containerization
+- Basic Kubernetes manifests
+- GitHub Actions CI/CD pipeline
+- PostgreSQL integration for v3

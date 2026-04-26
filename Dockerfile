@@ -1,4 +1,4 @@
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /usr/src/app
 
@@ -7,11 +7,12 @@ RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels -r requirements.txt
 
 FROM python:3.11-slim
 
-RUN useradd --create-home appuser
 WORKDIR /home/appuser/app
 
-COPY --from=builder /usr/src/app/wheels /wheels
+RUN useradd --create-home appuser
+
 COPY --from=builder /usr/src/app/requirements.txt .
+COPY --from=builder /usr/src/app/wheels /wheels
 
 RUN pip install --no-cache /wheels/*
 
@@ -24,4 +25,4 @@ USER appuser
 
 EXPOSE 5000
 
-CMD ["python", "./app.py"]
+CMD ["python", "app.py"]

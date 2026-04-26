@@ -1,0 +1,41 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: webapp-destinationrule
+  namespace: ant-demo
+  labels:
+    app.kubernetes.io/name: webapp-destinationrule
+    app.kubernetes.io/part-of: ant-demo
+spec:
+  host: ant-demo-webapp
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 10
+  subsets:
+  - name: v1
+    labels:
+      version: "1"
+  - name: v2
+    labels:
+      version: "2"
+  - name: v3
+    labels:
+      version: "3"
+  - name: v4
+    labels:
+      version: "4"
+  - name: v5
+    labels:
+      version: "5"
